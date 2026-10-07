@@ -46,9 +46,9 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:1px solid var
 .sidebar-text p+p{margin-top:.8em}
 .contacts{margin:18px 0;line-height:1.6;overflow-wrap:anywhere}
 .side-links{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-family:var(--font)}
-.experience{margin-top:36px;max-width:420px}
-.experience h2{font-size:16px;margin-bottom:12px}
-.experience ul{list-style:none;padding:0}
+.experience{margin-top:48px;border-top:.5px solid var(--line);padding-top:8px}
+.experience h2{font-size:16px;margin-bottom:16px}
+.experience ul{list-style:none;padding:0;max-width:420px}
 .experience li{display:grid;grid-template-columns:6.4em 1fr;gap:12px;margin-bottom:8px}
 .experience .years{color:var(--muted);white-space:nowrap}
 
