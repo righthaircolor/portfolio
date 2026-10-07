@@ -69,6 +69,8 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:1px solid var
 .projects td{vertical-align:top;padding:0 12px var(--s-list) 0;overflow-wrap:anywhere}
 .projects .marker{white-space:nowrap}
 .projects .desc{color:#333}
+/* «Своё»: rows carry a paragraph of description, so they are spaced like paragraphs, not list lines */
+.own td{padding-bottom:var(--s-para)}
 .projects-note{font-size:14px;color:var(--muted);margin-top:calc(var(--s-group) - var(--s-list));max-width:560px}
 .more{font:inherit;color:var(--ink);background:none;border:0;padding:0;margin-top:calc(var(--s-group) - var(--s-list));cursor:pointer}
 .more:hover{text-decoration:underline;text-decoration-thickness:.5px;text-underline-offset:6px}
@@ -185,6 +187,7 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
   .projects td.is-empty{display:none}
   .projects td.meta:not(.is-empty)~td.meta:not(.is-empty)::before{content:'·';margin-right:.45em}
   .projects td.desc{display:block;flex-basis:100%}
+  .own tbody tr{padding-bottom:var(--s-para)}
   .case-panel{left:0;padding:0 18px 28px}
   .case-panel h2{font-size:28px}
   .case-summary{font-size:20px}
