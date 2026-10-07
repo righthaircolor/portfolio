@@ -117,7 +117,7 @@ function casePanel(p, ownTitle) {
   const metaLine = [p.location, p.year, p.collab && `в коллаборации: ${p.collab}`].filter(Boolean).map(esc).join(' / ');
   const href = safeHref(p.link);
   return `<dialog class="case-panel" id="${p.slug}" aria-labelledby="${p.slug}-title">
-  <div class="case-top"><span>${esc(p.block === 'Своё' ? ownTitle : 'Проект')}</span><button type="button" class="case-close" aria-label="Закрыть">Закрыть ×</button></div>
+  <div class="case-top"><span>${esc(p.block === 'Своё' ? ownTitle : 'Проект')}</span><button type="button" class="case-close" aria-label="Закрыть">×</button></div>
   <article>
    <h2 id="${p.slug}-title">${projectTitle(p)}</h2>
    ${metaLine ? `<p class="case-meta">${metaLine}</p>` : ''}
@@ -282,7 +282,7 @@ export function renderFreePage(model, page, { siteUrl = '' } = {}) {
 <body class="free-page">
 <header class="page-head">
  <a class="site-name" href="../">${esc(name)}</a>
- <div class="bar"><span>${esc(title)}</span><a class="page-close" href="../">Закрыть ×</a></div>
+ <div class="bar"><span>${esc(title)}</span><a class="page-close" href="../" aria-label="Закрыть">×</a></div>
 </header>
 <main class="free">
  <aside class="free-photo">${photo ? `<img class="portrait" src="${esc(asset(photo.src))}" alt="${esc(name)}">` : ''}</aside>
