@@ -1,0 +1,14 @@
+{
+  "name": "ksenia-portfolio",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:fixture": "node scripts/build.mjs --fixture",
+    "test": "node --test scripts/*.test.mjs"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.34.4"
+  }
+}
