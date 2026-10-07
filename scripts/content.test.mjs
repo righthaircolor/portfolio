@@ -102,7 +102,7 @@ test('loads Notion content into the model and renders it', async () => {
   assert.match(html, /<ul><li>Пункт<ul><li>Вложенный<\/li><\/ul><\/li><\/ul>/);
   assert.match(html, /Текст &lt;script&gt;/);
   assert.match(html, /class="is-extra"/, 'rows past «Сколько показывать» are collapsed');
-  assert.match(html, /href="https:\/\/t.me\/toright" target="_blank" rel="noopener">О чём это говорит\? ↗/, 'empty page → row links out');
+  assert.match(html, /href="https:\/\/t.me\/toright" target="_blank" rel="noopener">О чём это говорит\? →/, 'empty page → row links out');
   assert.doesNotMatch(html, /projects-note/, 'empty note is hidden');
   assert.match(html, /data-more="Недостаточно проектов"/);
 });

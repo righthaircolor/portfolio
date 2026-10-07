@@ -10,12 +10,13 @@
   --line:#969696;
   --left:32%;
   --gap:24px;
+  --page-top:20px;
   --body:'Manrope',Arial,sans-serif;
   --heading:'Public Sans','Manrope',Arial,sans-serif;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.35 var(--body);padding:20px 28px 48px;min-height:100vh}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.35 var(--body);padding:var(--page-top) 28px 48px;min-height:100vh}
 h1,h2,h3,h4,h5,p,ul,ol,figure{margin:0}
 h1,h2,h3,h4,h5{font-weight:400}
 th,h2,.site-header{font-family:var(--heading)}
@@ -45,7 +46,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:1px solid var
 .side-links{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-family:var(--body)}
 .experience{margin-top:36px;max-width:420px}
 .experience h2{font-size:16px;margin-bottom:12px}
-.experience ul{list-style:none;padding:0;font-size:15px}
+.experience ul{list-style:none;padding:0}
 .experience li{display:grid;grid-template-columns:6.4em 1fr;gap:12px;margin-bottom:8px}
 .experience .years{color:var(--muted);white-space:nowrap}
 
@@ -53,8 +54,8 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:1px solid var
 .intro p{font-size:clamp(22px,2.05vw,34px);line-height:1.18;max-width:1000px}
 .intro p+p{margin-top:.5em}
 
-.projects table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:15px}
-.projects col.c-title{width:40%}.projects col.c-location{width:22%}.projects col.c-year{width:12%}.projects col.c-collab{width:26%}
+.projects table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:inherit}
+.projects col.c-title{width:38%}.projects col.c-collab{width:25%}.projects col.c-location{width:21%}.projects col.c-year{width:16%}
 .projects th{text-align:left;font-weight:400;border-top:.5px solid var(--line);padding:8px 12px 16px 0}
 .projects td{vertical-align:top;padding:4px 12px 4px 0;overflow-wrap:anywhere}
 .projects .marker{white-space:nowrap}
@@ -68,10 +69,10 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:1px solid var
 
 /* Case side panel */
 .case-panel{position:fixed;inset:0 0 0 calc(var(--left) + 34px);margin:0;width:auto;max-width:none;height:100dvh;max-height:100dvh;border:0;padding:0 32px 40px;background:var(--paper);color:var(--ink);overflow-y:auto;overscroll-behavior:contain}
-.case-panel::backdrop{background:rgba(255,255,255,.6)}
+.case-panel::backdrop{background:transparent}
 html:not(.js) .case-panel:target{display:block}
-.case-top{position:sticky;top:0;background:var(--paper);display:flex;justify-content:space-between;align-items:center;padding:24px 0;border-bottom:.5px solid var(--line);z-index:1;font-family:var(--heading)}
-.case-close{font:inherit;background:none;border:0;color:var(--ink);padding:8px;cursor:pointer}
+.case-top{position:sticky;top:0;background:var(--paper);display:flex;justify-content:space-between;align-items:center;padding:calc(var(--page-top) + 8px) 0 24px;line-height:1.35;font-size:16px;border-bottom:.5px solid var(--line);z-index:1;font-family:var(--heading)}
+.case-close{font:inherit;line-height:inherit;background:none;border:0;color:var(--ink);padding:0;cursor:pointer}
 .case-panel article{padding-top:36px;max-width:1100px}
 .case-panel h2{font-size:32px;margin-bottom:14px}
 .case-meta{font-size:14px;margin-bottom:28px}
@@ -102,10 +103,9 @@ html:not(.js) .case-panel:target{display:block}
 
 /* Tablet */
 @media (max-width:900px){
-  :root{--left:28%;--gap:20px}
+  :root{--left:28%;--gap:20px;--page-top:18px}
   body{padding:18px}
   .portrait{width:100%}
-  .projects table{font-size:14px}
   .case-panel{padding-left:22px;padding-right:22px}
 }
 

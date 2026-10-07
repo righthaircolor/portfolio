@@ -60,35 +60,24 @@
    {
     "type": "li",
     "ordered": false,
+    "children": [],
     "rich": [
      {
-      "t": "Кто я и чем могу помочь",
-      "href": "/about"
+      "t": "Кто я и чем могу помочь →",
+      "href": "https://righthaircolor.github.io/portfolio/about/"
      }
-    ],
-    "children": []
+    ]
    },
    {
     "type": "li",
     "ordered": false,
+    "children": [],
     "rich": [
      {
-      "t": "Кейсы и наблюдения",
-      "href": "/journal"
+      "t": "Кейсы и наблюдения →",
+      "href": "https://righthaircolor.github.io/portfolio/journal/"
      }
-    ],
-    "children": []
-   },
-   {
-    "type": "li",
-    "ordered": false,
-    "rich": [
-     {
-      "t": "О чём это говорит?",
-      "href": "https://t.me/toright"
-     }
-    ],
-    "children": []
+    ]
    }
   ],
   "experienceTitle": [

@@ -9,8 +9,14 @@ export function safeHref(href = '') {
   return /^(https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i.test(h) && !/[\s\\]/.test(h) ? h : '';
 }
 
+// Links to this site's own address (from Notion, which can't store relative links) become relative.
+let siteBase = '';
+const localize = (href) => (siteBase && href.startsWith(siteBase) ? './' + href.slice(siteBase.length) : href);
 const isExternal = (href) => /^https?:\/\//i.test(href);
-const linkAttrs = (href) => `href="${esc(href)}"${isExternal(href) ? ' target="_blank" rel="noopener"' : ''}`;
+const linkAttrs = (raw) => {
+  const href = localize(raw);
+  return `href="${esc(href)}"${isExternal(href) ? ' target="_blank" rel="noopener"' : ''}`;
+};
 
 export function inline(spans = []) {
   return spans
@@ -97,7 +103,7 @@ function projectTitle(p) {
 function titleCell(p) {
   if (p.content.length) return `<a href="#${p.slug}" data-case="${p.slug}">${projectTitle(p)}</a>`;
   const href = safeHref(p.link);
-  if (href) return `<a ${linkAttrs(href)}>${projectTitle(p)}${isExternal(href) ? ' ↗' : ''}</a>`;
+  if (href) return `<a ${linkAttrs(href)}>${projectTitle(p)} →</a>`;
   return projectTitle(p);
 }
 
@@ -120,6 +126,7 @@ function casePanel(p, ownTitle) {
 }
 
 export function renderHome(model, { siteUrl = '' } = {}) {
+  siteBase = siteUrl ? siteUrl.replace(/\/?$/, '/') : '';
   const h = model.home;
   const name = fieldText(h.name) || 'Ксения Анискович';
   const description = fieldText(h.description);
@@ -142,14 +149,14 @@ export function renderHome(model, { siteUrl = '' } = {}) {
     : '';
 
   const projectRows = main
-    .map((p, i) => `<tr${i >= visibleCount ? ' class="is-extra"' : ''}><td class="title">${titleCell(p)}</td>${meta(p.location)}${meta(p.year)}${meta(p.collab, ' collab')}</tr>`)
+    .map((p, i) => `<tr${i >= visibleCount ? ' class="is-extra"' : ''}><td class="title">${titleCell(p)}</td>${meta(p.collab, ' collab')}${meta(p.location)}${meta(p.year)}</tr>`)
     .join('\n      ');
 
   const ownRows = own
     .map((p) => `<tr><td class="title">${titleCell(p)}</td><td class="desc" colspan="3">${inline(p.summary)}</td></tr>`)
     .join('\n      ');
 
-  const cols = '<colgroup><col class="c-title"><col class="c-location"><col class="c-year"><col class="c-collab"></colgroup>';
+  const cols = '<colgroup><col class="c-title"><col class="c-collab"><col class="c-location"><col class="c-year"></colgroup>';
   const ogImage = photo && siteUrl ? `<meta property="og:image" content="${esc(siteUrl.replace(/\/$/, '') + '/' + photo.src)}">` : '';
 
   return `<!doctype html>
@@ -183,7 +190,7 @@ ${ogImage}
   <section class="intro" aria-label="Обо мне">${lines(h.intro)}</section>
   ${main.length ? `<section class="projects" aria-label="Проекты">
    <table>${cols}
-    <thead><tr><th scope="col">Проект</th><th scope="col">Локация</th><th scope="col">Год</th><th scope="col">В коллаборации</th></tr></thead>
+    <thead><tr><th scope="col">Проект</th><th scope="col">В коллаборации</th><th scope="col">Локация</th><th scope="col">Год</th></tr></thead>
     <tbody>
       ${projectRows}
     </tbody>
