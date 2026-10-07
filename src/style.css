@@ -137,6 +137,10 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.3s}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 
+/* Branch preview badge (only on preview/<branch>/ builds) */
+.preview-badge{position:fixed;left:12px;bottom:12px;z-index:2147483646;background:#000;color:#fff;font-size:13px;padding:6px 10px;text-decoration:none}
+.preview-badge:hover{text-decoration:underline}
+
 /* Magic wand cursor */
 @media (hover:hover) and (pointer:fine){html,body,body *{cursor:url('wand-color.svg') 3 2,auto!important}}
 .wand-trail{position:fixed;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;pointer-events:none;z-index:2147483647;background:#ffdc68;box-shadow:0 0 5px 2px #edb32c,0 0 12px 3px #ffd45e99;animation:wand-trail-fade .6s ease-out forwards}

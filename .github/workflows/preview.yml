@@ -1,0 +1,21 @@
+name: Превью ветки
+
+# Публиковать на GitHub Pages можно только из main, поэтому пуш в ветку
+# просто запускает основную сборку — она соберёт и сайт, и превью всех веток.
+on:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  actions: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run build.yml --ref main --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: |
+          slug=$(echo "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          echo "Превью будет через пару минут: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/preview/$slug/" >> "$GITHUB_STEP_SUMMARY"

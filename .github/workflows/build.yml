@@ -6,6 +6,9 @@ on:
     - cron: '17 * * * *'      # и сам раз в час
   push:
     branches: [main]
+  delete:                     # ветку удалили — её превью исчезает
+  # Пуш в любую другую ветку запускает эту сборку через preview.yml:
+  # собирается сайт из main и превью всех веток в preview/<ветка>/.
 
 permissions:
   contents: read
@@ -21,17 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
-      - run: npm test
-      - run: npm run build
+      - run: scripts/build-all.sh
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
 
   deploy:
     needs: build

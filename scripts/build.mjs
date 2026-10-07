@@ -31,10 +31,17 @@ await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 await cp(path.join(root, 'src'), outDir, { recursive: true });
 await localizeImages(model, { outDir, baseDir: path.join(root, 'fixtures') });
-await writeFile(path.join(outDir, 'index.html'), renderHome(model, { siteUrl: config.siteUrl }));
+// Branch previews (set by scripts/build-all.sh): hidden from search engines and marked with a badge.
+const branch = process.env.PREVIEW_BRANCH;
+const mark = (html, home) =>
+  !branch ? html : html
+    .replace('</head>', '<meta name="robots" content="noindex">\n</head>')
+    .replace(/<body([^>]*)>/, `<body$1>\n<a class="preview-badge" href="${home}">Превью: ${branch.replace(/[<>&"]/g, '')} · основной сайт →</a>`);
+const live = config.siteUrl || '../../';
+await writeFile(path.join(outDir, 'index.html'), mark(renderHome(model, { siteUrl: config.siteUrl }), live));
 if (model.about) {
   await mkdir(path.join(outDir, 'about'), { recursive: true });
-  await writeFile(path.join(outDir, 'about', 'index.html'), renderFreePage(model, model.about, { siteUrl: config.siteUrl }));
+  await writeFile(path.join(outDir, 'about', 'index.html'), mark(renderFreePage(model, model.about, { siteUrl: config.siteUrl }), live));
 }
 if (config.domain) await writeFile(path.join(outDir, 'CNAME'), config.domain + '\n');
 await writeFile(path.join(outDir, '.nojekyll'), '');
