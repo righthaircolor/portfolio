@@ -12,21 +12,30 @@ document.querySelectorAll('.more').forEach((button) => {
 });
 
 // Case side panels: rows link to #slug; the panel is a <dialog> with that id.
+// While a panel is open the page behind it shows its first screen (photo and text about me),
+// wherever the list was scrolled to; closing the panel returns to the same place in the list.
 let lastTrigger = null;
+let savedScroll = null;
 function openCase(id, trigger) {
   const dialog = document.getElementById(id);
   if (!dialog || dialog.tagName !== 'DIALOG' || dialog.open) return;
   lastTrigger = trigger || null;
+  if (savedScroll === null) savedScroll = window.scrollY;
   document.querySelectorAll('dialog.case-panel[open]').forEach((d) => d.close());
+  window.scrollTo({ top: 0, behavior: 'instant' });
   dialog.showModal();
+  dialog.querySelector('article')?.focus({ preventScroll: true });
   dialog.scrollTop = 0;
   document.body.style.overflow = 'hidden';
   if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
 }
 document.querySelectorAll('dialog.case-panel').forEach((dialog) => {
   dialog.addEventListener('close', () => {
+    if (document.querySelector('dialog.case-panel[open]')) return; // switched to another case
     document.body.style.overflow = '';
     if (location.hash === '#' + dialog.id) history.replaceState(null, '', location.pathname + location.search);
+    if (savedScroll !== null) window.scrollTo({ top: savedScroll, behavior: 'instant' });
+    savedScroll = null;
     lastTrigger?.focus({ preventScroll: true });
   });
   dialog.querySelector('.case-close')?.addEventListener('click', () => dialog.close());

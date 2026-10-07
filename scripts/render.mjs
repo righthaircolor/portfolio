@@ -118,7 +118,7 @@ function casePanel(p, ownTitle) {
   const href = safeHref(p.link);
   return `<dialog class="case-panel" id="${p.slug}" aria-labelledby="${p.slug}-title">
   <div class="case-top"><span>${esc(p.block === 'Своё' ? ownTitle : 'Проект')}</span><button type="button" class="case-close" aria-label="Закрыть">×</button></div>
-  <article>
+  <article tabindex="-1">
    <h2 id="${p.slug}-title">${projectTitle(p)}</h2>
    ${metaLine ? `<p class="case-meta">${metaLine}</p>` : ''}
    ${plain(p.summary).trim() ? `<p class="case-summary">${inline(p.summary)}</p>` : ''}
