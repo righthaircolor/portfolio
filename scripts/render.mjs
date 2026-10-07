@@ -169,7 +169,7 @@ ${description ? `<meta name="description" content="${esc(description)}">\n<meta 
 <meta property="og:title" content="${esc(name)}">
 ${ogImage}
 <link rel="icon" href="favicon.svg">
-<link rel="preload" href="fonts/manrope-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/golos-text-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 <script>document.documentElement.classList.add('js')</script>
 </head>
