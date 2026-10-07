@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from './notion.mjs';
 import { loadFromNotion } from './content.mjs';
 import { localizeImages } from './images.mjs';
-import { renderHome } from './render.mjs';
+import { renderHome, renderFreePage } from './render.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(root, 'dist');
@@ -32,6 +32,10 @@ await mkdir(outDir, { recursive: true });
 await cp(path.join(root, 'src'), outDir, { recursive: true });
 await localizeImages(model, { outDir, baseDir: path.join(root, 'fixtures') });
 await writeFile(path.join(outDir, 'index.html'), renderHome(model, { siteUrl: config.siteUrl }));
+if (model.about) {
+  await mkdir(path.join(outDir, 'about'), { recursive: true });
+  await writeFile(path.join(outDir, 'about', 'index.html'), renderFreePage(model, model.about, { siteUrl: config.siteUrl }));
+}
 if (config.domain) await writeFile(path.join(outDir, 'CNAME'), config.domain + '\n');
 await writeFile(path.join(outDir, '.nojekyll'), '');
 console.log('Готово: dist/index.html');

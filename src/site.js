@@ -82,3 +82,10 @@ if (location.hash.length > 1) {
     }
   }, { passive: true });
 })();
+
+// «Закрыть ×» on free pages also works with Esc.
+if (document.body.classList.contains('free-page')) {
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !e.defaultPrevented) location.href = document.querySelector('.page-close')?.href || '../';
+  });
+}

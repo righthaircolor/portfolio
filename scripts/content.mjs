@@ -45,6 +45,7 @@ export function spans(richText = []) {
 }
 
 export const plain = (sp = []) => sp.map((s) => s.t).join('');
+const notEmpty = (b) => !(b.type === 'p' && !plain(b.rich).trim());
 
 function fileUrl(f) {
   if (!f) return '';
@@ -52,9 +53,10 @@ function fileUrl(f) {
 }
 
 // One Notion block → zero or more model blocks.
-export function convertBlock(block) {
+// With { columns: true } Notion columns are kept as { type: 'columns', cols: [[...], [...]] }.
+export function convertBlock(block, opts = {}) {
   const data = block[block.type] || {};
-  const kids = () => (block.children || []).flatMap(convertBlock);
+  const kids = () => (block.children || []).flatMap((b) => convertBlock(b, opts));
   switch (block.type) {
     case 'paragraph':
       return [{ type: 'p', rich: spans(data.rich_text) }, ...kids()];
@@ -86,6 +88,11 @@ export function convertBlock(block) {
     case 'divider':
       return [{ type: 'hr' }];
     case 'column_list':
+      if (opts.columns) {
+        const cols = (block.children || []).map((col) => (col.children || []).flatMap((b) => convertBlock(b, opts)).filter(notEmpty));
+        return [{ type: 'columns', cols }];
+      }
+      return kids();
     case 'column':
     case 'synced_block':
       return kids();
@@ -161,6 +168,15 @@ export function parseProject(page, blocks) {
   };
 }
 
+// A free-form page («Обо мне»): title from the page, content keeps Notion columns.
+export function parseFreePage(page, blocks) {
+  const titleProp = Object.values(page?.properties || {}).find((p) => p.type === 'title');
+  return {
+    title: plain(spans(titleProp?.title)).trim(),
+    content: blocks.flatMap((b) => convertBlock(b, { columns: true })).filter(notEmpty),
+  };
+}
+
 const visibleFilter = { property: 'Показывать', checkbox: { equals: true } };
 const orderSort = [{ property: 'Порядок', direction: 'ascending' }];
 
@@ -177,5 +193,10 @@ export async function loadFromNotion(client, ids) {
   for (const page of projectPages) {
     projects.push(parseProject(page, await client.blockTree(page.id)));
   }
-  return { home, experience: parseExperience(experiencePages), projects };
+  const model = { home, experience: parseExperience(experiencePages), projects };
+  if (ids.about) {
+    const [page, blocks] = await Promise.all([client.call(`/pages/${ids.about}`), client.blockTree(ids.about)]);
+    model.about = parseFreePage(page, blocks);
+  }
+  return model;
 }

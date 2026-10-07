@@ -10,8 +10,11 @@ export function safeHref(href = '') {
 }
 
 // Links to this site's own address (from Notion, which can't store relative links) become relative.
+// pageBase is the way back to the site root from the page being rendered: './' or '../'.
 let siteBase = '';
-const localize = (href) => (siteBase && href.startsWith(siteBase) ? './' + href.slice(siteBase.length) : href);
+let pageBase = './';
+const localize = (href) => (siteBase && href.startsWith(siteBase) ? pageBase + href.slice(siteBase.length) : href);
+const asset = (src) => (/^(https?:)?\/\//.test(src) ? src : pageBase + src);
 const isExternal = (href) => /^https?:\/\//i.test(href);
 const linkAttrs = (raw) => {
   const href = localize(raw);
@@ -66,7 +69,7 @@ export function blocksHtml(blocks = [], { alt = '' } = {}) {
       case 'image':
         if (b.src) {
           const caption = plain(b.caption);
-          html += `<figure><img src="${esc(b.src)}" alt="${esc(caption || alt)}" loading="lazy">${caption ? `<figcaption>${inline(b.caption)}</figcaption>` : ''}</figure>`;
+          html += `<figure><img src="${esc(asset(b.src))}" alt="${esc(caption || alt)}" loading="lazy">${caption ? `<figcaption>${inline(b.caption)}</figcaption>` : ''}</figure>`;
         }
         break;
       case 'hr':
@@ -125,8 +128,30 @@ function casePanel(p, ownTitle) {
  </dialog>`;
 }
 
-export function renderHome(model, { siteUrl = '' } = {}) {
+function setPage(siteUrl, base) {
   siteBase = siteUrl ? siteUrl.replace(/\/?$/, '/') : '';
+  pageBase = base;
+}
+
+function head({ title, description = '', ogImage = '' }) {
+  return `<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)}</title>
+${description ? `<meta name="description" content="${esc(description)}">\n<meta property="og:description" content="${esc(description)}">` : ''}
+<meta property="og:title" content="${esc(title)}">
+${ogImage}
+<link rel="icon" href="${pageBase}favicon.svg">
+<link rel="preload" href="${pageBase}fonts/golos-text-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="${pageBase}style.css">
+<script>document.documentElement.classList.add('js')</script>
+</head>`;
+}
+
+export function renderHome(model, { siteUrl = '' } = {}) {
+  setPage(siteUrl, './');
   const h = model.home;
   const name = fieldText(h.name) || 'Ксения Анискович';
   const description = fieldText(h.description);
@@ -159,20 +184,7 @@ export function renderHome(model, { siteUrl = '' } = {}) {
   const cols = '<colgroup><col class="c-title"><col class="c-collab"><col class="c-location"><col class="c-year"></colgroup>';
   const ogImage = photo && siteUrl ? `<meta property="og:image" content="${esc(siteUrl.replace(/\/$/, '') + '/' + photo.src)}">` : '';
 
-  return `<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(name)}</title>
-${description ? `<meta name="description" content="${esc(description)}">\n<meta property="og:description" content="${esc(description)}">` : ''}
-<meta property="og:title" content="${esc(name)}">
-${ogImage}
-<link rel="icon" href="favicon.svg">
-<link rel="preload" href="fonts/golos-text-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css">
-<script>document.documentElement.classList.add('js')</script>
-</head>
+  return `${head({ title: name, description, ogImage })}
 <body>
 <header class="site-header">
  <a class="site-name" href="./">${esc(name)}</a>
@@ -210,6 +222,76 @@ ${ogImage}
 </main>
 ${projects.map((p) => casePanel(p, fieldText(h.ownTitle) || 'Своё')).join('\n')}
 <script src="site.js" defer></script>
+</body>
+</html>
+`;
+}
+
+// «Обо мне» and similar free pages.
+// Layout rules (see README): the first paragraph is the big statement; H1/H2 start a section and become
+// an uppercase label in the narrow column; H3 + following text = subheading left, text right;
+// Notion columns = left column → narrow column, the rest → main column; a divider draws a line;
+// anything else goes into the main column.
+export function layoutFreePage(blocks = []) {
+  const items = [...blocks];
+  const statement = items[0]?.type === 'p' ? [items.shift()] : [];
+  const out = [];
+  let section = null, row = null;
+  const ensure = () => { if (!section) { section = { label: null, rows: [] }; out.push(section); } return section; };
+  for (const b of items) {
+    if (b.type === 'h' && b.level <= 2) {
+      section = { label: b.rich, rows: [] }; out.push(section); row = null;
+    } else if (b.type === 'hr') {
+      out.push({ hr: true }); section = null; row = null;
+    } else if (b.type === 'h') {
+      row = { kind: 'sub', aside: [b], main: [] }; ensure().rows.push(row);
+    } else if (b.type === 'columns') {
+      const [aside = [], ...rest] = b.cols;
+      ensure().rows.push({ kind: aside.length ? 'cols' : 'plain', aside, main: rest.flat() });
+      row = null;
+    } else {
+      if (!row) { row = { kind: 'plain', aside: [], main: [] }; ensure().rows.push(row); }
+      row.main.push(b);
+    }
+  }
+  return { statement, sections: out };
+}
+
+function freeSectionHtml(section) {
+  if (section.hr) return '<hr class="divider">';
+  const label = section.label ? `<h2 class="label">${inline(section.label)}</h2>` : '';
+  const rows = section.rows.map((r) => ({ ...r, asideHtml: r.aside.map((b) => (b.type === 'h' ? `<h3>${inline(b.rich)}</h3>` : blocksHtml([b]))).join('') }));
+  let lead = '';
+  if (label) {
+    const first = rows[0];
+    if (first && first.kind === 'plain') first.asideHtml = label;
+    else if (first && first.kind === 'cols') first.asideHtml = label + first.asideHtml;
+    else lead = `<div class="row label-row"><div class="aside">${label}</div></div>`;
+  }
+  return `<section class="free-section">${lead}${rows.map((r) => `<div class="row"><div class="aside">${r.asideHtml}</div><div class="main">${blocksHtml(r.main)}</div></div>`).join('')}</section>`;
+}
+
+export function renderFreePage(model, page, { siteUrl = '' } = {}) {
+  setPage(siteUrl, '../');
+  const h = model.home;
+  const name = fieldText(h.name) || 'Ксения Анискович';
+  const photo = (h.photo || []).find((b) => b.type === 'image' && b.src);
+  const { statement, sections } = layoutFreePage(page.content);
+  const title = page.title || 'Обо мне';
+  return `${head({ title: `${title} — ${name}`, description: fieldText(h.description) })}
+<body class="free-page">
+<header class="page-head">
+ <a class="site-name" href="../">${esc(name)}</a>
+ <div class="bar"><span>${esc(title)}</span><a class="page-close" href="../">Закрыть ×</a></div>
+</header>
+<main class="free">
+ <aside class="free-photo">${photo ? `<img class="portrait" src="${esc(asset(photo.src))}" alt="${esc(name)}">` : ''}</aside>
+ <div class="free-text">
+  ${statement.length ? `<section class="statement">${statement.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</section>` : ''}
+  ${sections.map(freeSectionHtml).join('\n  ')}
+ </div>
+</main>
+<script src="../site.js" defer></script>
 </body>
 </html>
 `;

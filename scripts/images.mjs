@@ -75,10 +75,12 @@ export async function localizeImages(model, { outDir, baseDir = process.cwd(), m
         }
       }
       if (b.children) await walk(b.children, width);
+      if (b.cols) for (const col of b.cols) await walk(col, width);
     }
   }
 
   await walk(model.home.photo, 900);
   for (const p of model.projects) await walk(p.content, maxWidth);
+  if (model.about) await walk(model.about.content, maxWidth);
   return model;
 }

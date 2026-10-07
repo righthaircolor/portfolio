@@ -111,3 +111,36 @@ test('explains a missing connection in Russian', async () => {
   const client = createClient('secret', { fetchImpl: async () => new Response(JSON.stringify({ code: 'object_not_found', message: 'nope' }), { status: 404 }) });
   await assert.rejects(client.children('DENIED'), /Connections/);
 });
+
+import { convertBlock, parseFreePage } from './content.mjs';
+import { layoutFreePage, renderFreePage } from './render.mjs';
+
+test('free page: statement, sections, subheads, columns and dividers', () => {
+  const col = (kids) => ({ type: 'column', column: {}, has_children: true, children: kids });
+  const blocks = [
+    p('Привет.'), p('Абзац.'),
+    block('heading_2', { rich_text: rt('Ко мне приходят') }), li('Пункт'),
+    block('heading_2', { rich_text: rt('Подход') }), block('heading_3', { rich_text: rt('Принцип') }), p('Текст принципа'),
+    block('divider', {}),
+    block('heading_2', { rich_text: rt('Помощь') }),
+    { type: 'column_list', column_list: {}, has_children: true, children: [col([p('Слева')]), col([li('Справа')])] },
+  ];
+  const page = parseFreePage({ properties: { title: { type: 'title', title: rt('Обо мне') } } }, blocks);
+  assert.equal(page.title, 'Обо мне');
+  assert.equal(page.content.at(-1).type, 'columns');
+  const { statement, sections } = layoutFreePage(page.content);
+  assert.equal(statement.length, 1);
+  assert.equal(sections.length, 5);
+  assert.equal(sections[2].rows[0].kind, 'sub');
+  assert.ok(sections[3].hr);
+  assert.equal(sections[4].rows[0].kind, 'cols');
+  // Columns are flattened everywhere except free pages.
+  assert.equal(convertBlock(blocks.at(-1))[0].type, 'p');
+
+  const html = renderFreePage({ home: { name: [], photo: [] } }, page);
+  assert.match(html, /<div class="aside"><h2 class="label">Ко мне приходят<\/h2><\/div><div class="main"><ul><li>Пункт/);
+  assert.match(html, /label-row"><div class="aside"><h2 class="label">Подход<\/h2><\/div><\/div><div class="row"><div class="aside"><h3>Принцип<\/h3>/);
+  assert.match(html, /<hr class="divider">/);
+  assert.match(html, /<div class="aside"><h2 class="label">Помощь<\/h2><p>Слева<\/p><\/div>/);
+  assert.match(html, /href="\.\.\/style\.css"/);
+});
