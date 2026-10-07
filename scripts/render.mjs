@@ -143,7 +143,9 @@ function head({ title, description = '', ogImage = '' }) {
 ${description ? `<meta name="description" content="${esc(description)}">\n<meta property="og:description" content="${esc(description)}">` : ''}
 <meta property="og:title" content="${esc(title)}">
 ${ogImage}
-<link rel="icon" href="${pageBase}favicon.svg">
+<link rel="icon" href="${pageBase}favicon.svg" type="image/svg+xml">
+<link rel="icon" href="${pageBase}favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="${pageBase}apple-touch-icon.png">
 <link rel="preload" href="${pageBase}fonts/golos-text-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${pageBase}style.css">
 <script>document.documentElement.classList.add('js')</script>

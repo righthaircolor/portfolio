@@ -37,6 +37,10 @@ Actions → последний запуск → красный шаг «npm run 
 
 GitHub выключает запуск по расписанию, если в репозитории 60 дней не было коммитов. Тогда обновляй кнопкой Run workflow или включи расписание обратно в Actions.
 
+## Фавиконка
+
+Лежит в `src/favicon.svg`. Чтобы заменить: на GitHub открой папку `src` → Add file → Upload files → загрузи свой SVG с именем `favicon.svg` → Commit changes. PNG-версии (`favicon-32.png`, `apple-touch-icon.png`) для Safari и экрана телефона нужно пересобрать — попроси об этом Claude.
+
 ## Для разработки
 
 ```
