@@ -1131,6 +1131,68 @@
    "link": "https://t.me/toright",
    "block": "Своё",
    "content": []
+  },
+  {
+   "id": "bar",
+   "title": "Бар о пай",
+   "marker": "",
+   "location": "",
+   "year": "",
+   "collab": "",
+   "summary": [
+    {
+     "t": "Игровой тест о визуализации данных: показывает типичные ошибки и помогает в них разобраться."
+    }
+   ],
+   "link": "https://bar-or-pie.dianov.org/",
+   "block": "Спецпроекты",
+   "content": [
+    {
+     "type": "image",
+     "id": "20.webp",
+     "src": "media/20.webp",
+     "caption": []
+    },
+    {
+     "type": "p",
+     "rich": [
+      {
+       "t": "Это игровой тест с правилами визуализации данных."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "haiku",
+   "title": "Хоккуист",
+   "marker": "",
+   "location": "",
+   "year": "",
+   "collab": "",
+   "summary": [
+    {
+     "t": "Генератор хокку."
+    }
+   ],
+   "link": "https://haiku-apocalypse.surge.sh/",
+   "block": "Спецпроекты",
+   "content": [
+    {
+     "type": "image",
+     "id": "19.webp",
+     "src": "media/19.webp",
+     "caption": []
+    },
+    {
+     "type": "p",
+     "rich": [
+      {
+       "t": "Генератор хокку."
+      }
+     ]
+    }
+   ]
   }
  ],
  "about": {
