@@ -163,12 +163,14 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
 .card .go:hover,.card h2 a:hover{text-decoration:underline;text-decoration-thickness:.5px;text-underline-offset:4px}
 .card[hidden],.j-list li[hidden],.j-empty[hidden]{display:none}
 .j-empty{color:var(--muted)}
-/* A text that lives on the site: the title is the statement, facts sit in the left column */
-.statement h1{font-size:clamp(22px,2.05vw,34px);line-height:1.18;font-weight:400;max-width:1000px}
-.statement p.lede{font-size:16px;line-height:inherit;margin-top:var(--s-para);max-width:620px}
-.text-facts{padding-top:var(--s-top)}
-.text-facts ul{list-style:none;padding:0;display:grid;gap:var(--s-list);color:var(--muted)}
-.text-facts ul+p{margin-top:var(--s-group)}
+/* A text that lives on the site: the header line breaks between the columns (like an open case panel) */
+.j-head.is-split{border-bottom:0;padding-bottom:0}
+.j-head.is-split>*{align-self:stretch;display:flex;align-items:flex-end;padding-bottom:24px;border-bottom:.5px solid var(--line)}
+.j-head.is-split .site-name{justify-self:stretch}
+.j-head.is-split .bar{justify-content:space-between}
+.j-text{padding-top:var(--s-top);min-width:0;display:flex;flex-direction:column;gap:var(--s-block)}
+.text-head h1{font-size:clamp(22px,2.05vw,34px);line-height:1.18;font-weight:400;max-width:1000px}
+.text-head .src{color:var(--muted);margin-top:var(--s-list)}
 
 /* The portrait grows from the home sidebar into the column (browsers with cross-page view transitions). */
 @view-transition{navigation:auto}
@@ -227,7 +229,11 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
   .j-feed{padding-top:28px;gap:40px}
   .card-row{grid-template-columns:1fr;row-gap:var(--s-list)}
   .card h2{padding:0}
-  .text-facts{padding-top:0}
+  .j-head.is-split>*{border:0;padding-bottom:0}
+  .j-head.is-split{border-bottom:.5px solid var(--line);padding-bottom:16px}
+  .text-page .j-text{padding-top:40px;gap:40px}
+  .text-page .j-lead{display:none}
+  .text-page .j-rubrics{margin-top:0}
   .grid{display:flex;flex-direction:column;gap:40px}
   .left{padding-right:0;width:100%}
   .right{gap:40px}

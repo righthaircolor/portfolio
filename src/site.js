@@ -126,6 +126,9 @@ if (location.hash.length > 1) {
     e.preventDefault();
     document.getElementById(a.dataset.card)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
+  // Coming back from a text page (× → ../#t-slug): show its card, keep the list unfiltered.
+  const card = location.hash.startsWith('#t-') && document.getElementById(location.hash.slice(1));
+  if (card) requestAnimationFrame(() => card.scrollIntoView({ block: 'start' }));
   addEventListener('scroll', spy, { passive: true });
   addEventListener('load', spy);
   addEventListener('popstate', apply);
@@ -133,9 +136,25 @@ if (location.hash.length > 1) {
   apply();
 })();
 
-// «Закрыть ×» on free pages also works with Esc.
-if (document.body.classList.contains('free-page') || document.body.classList.contains('journal-page')) {
+// «Закрыть ×» (and Esc) on inner pages. On a text page it goes back to the list exactly where the reader left it
+// (same rubric, same scroll) if they came from there; otherwise to the list, scrolled to this text's card.
+(() => {
+  const close = document.querySelector('.page-close');
+  if (!close || !document.body.matches('.free-page, .journal-page')) return;
+  const cameFromList = () => {
+    try {
+      const from = new URL(document.referrer);
+      return from.origin === location.origin && from.pathname === new URL(close.href).pathname;
+    } catch { return false; }
+  };
+  const leave = (e) => {
+    if (close.hasAttribute('data-back') && cameFromList() && history.length > 1) {
+      e?.preventDefault();
+      history.back();
+    } else if (!e) location.href = close.href;
+  };
+  close.addEventListener('click', leave);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !e.defaultPrevented) location.href = document.querySelector('.page-close')?.href || '../';
+    if (e.key === 'Escape' && !e.defaultPrevented) leave();
   });
-}
+})();

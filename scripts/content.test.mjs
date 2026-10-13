@@ -151,7 +151,10 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
   assert.match(html, /<p class="j-empty" hidden>/);
   const page = renderTextPage(model, model.journal.texts[2]);
   assert.match(page, /<h1>Инсайт<\/h1>/);
-  assert.match(page, /href="\.\.\/#insayty"/);
+  assert.match(page, /<a href="\.\.\/#insayty" aria-current="true">Инсайты/, 'rubrics lead back to the list, own rubric marked');
+  assert.match(page, /class="page-close" href="\.\.\/#t-insayt" data-back/, '× returns to the card');
+  assert.match(page, /<header class="j-head is-split">/);
+  assert.doesNotMatch(page, /class="lede"|<p>Кратко/, 'summary is not repeated inside the text');
   assert.match(page, /href="\.\.\/\.\.\/style\.css"/);
   assert.doesNotMatch(page, /<section class="statement"><p>Текст на сайте/, 'first paragraph stays regular text');
 });
