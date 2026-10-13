@@ -120,7 +120,7 @@ function casePanel(p, ownTitle) {
   const metaLine = [p.location, p.year, p.collab && `в коллаборации: ${p.collab}`].filter(Boolean).map(esc).join(' / ');
   const href = safeHref(p.link);
   return `<dialog class="case-panel" id="${p.slug}" aria-labelledby="${p.slug}-title">
-  <div class="case-top"><span>${esc(p.block === 'Своё' ? ownTitle : 'Проект')}</span><button type="button" class="case-close" aria-label="Закрыть">×</button></div>
+  <div class="case-top"><span>${esc(p.block === 'Своё' ? ownTitle : p.block && p.block !== 'Проекты' ? p.block : 'Проект')}</span><button type="button" class="case-close" aria-label="Закрыть">×</button></div>
   <article tabindex="-1">
    <h2 id="${p.slug}-title">${projectTitle(p)}</h2>
    ${metaLine ? `<p class="case-meta">${metaLine}</p>` : ''}
@@ -166,8 +166,17 @@ export function renderHome(model, { siteUrl = '' } = {}) {
 
   const used = new Set();
   const projects = model.projects.map((p) => ({ ...p, slug: slugify(p.title, used) }));
-  const main = projects.filter((p) => p.block !== 'Своё');
-  const own = projects.filter((p) => p.block === 'Своё');
+  // Tables follow «Блок»: «Проекты» first, then «Своё», then every other value («Спецпроекты»…)
+  // as its own table shaped like «Проекты», titled with the value, in order of first appearance.
+  const byBlock = new Map();
+  for (const p of projects) {
+    const key = p.block || 'Проекты';
+    if (!byBlock.has(key)) byBlock.set(key, []);
+    byBlock.get(key).push(p);
+  }
+  const main = byBlock.get('Проекты') || [];
+  const own = byBlock.get('Своё') || [];
+  const extra = [...byBlock].filter(([key]) => key !== 'Проекты' && key !== 'Своё');
 
   const lines = (blocks = []) => blocks.map((b) => (b.type === 'image' ? '' : `<p>${inline(b.rich)}</p>`)).join('');
 
@@ -178,9 +187,8 @@ export function renderHome(model, { siteUrl = '' } = {}) {
    </section>`
     : '';
 
-  const projectRows = main
-    .map((p, i) => `<tr${i >= visibleCount ? ' class="is-extra"' : ''}><td class="title">${titleCell(p)}</td>${meta(p.collab, ' collab')}${meta(p.location)}${meta(p.year)}</tr>`)
-    .join('\n      ');
+  const projectRow = (p, i = 0) => `<tr${i >= visibleCount ? ' class="is-extra"' : ''}><td class="title">${titleCell(p)}</td>${meta(p.collab, ' collab')}${meta(p.location)}${meta(p.year)}</tr>`;
+  const projectRows = main.map(projectRow).join('\n      ');
 
   const ownRows = own
     .map((p) => `<tr><td class="title">${titleCell(p)}</td><td class="desc" colspan="3">${inline(p.summary)}</td></tr>`)
@@ -223,6 +231,14 @@ export function renderHome(model, { siteUrl = '' } = {}) {
     </tbody>
    </table>
   </section>` : ''}
+  ${extra.map(([title, list]) => `<section class="projects" aria-label="${esc(title)}">
+   <table>${cols}
+    <thead><tr><th scope="col">${esc(title)}</th><th scope="col">В коллаборации</th><th scope="col">Локация</th><th scope="col">Год</th></tr></thead>
+    <tbody>
+      ${list.map((p) => projectRow(p)).join('\n      ')}
+    </tbody>
+   </table>
+  </section>`).join('\n  ')}
  </div>
 </main>
 ${projects.map((p) => casePanel(p, fieldText(h.ownTitle) || 'Своё')).join('\n')}

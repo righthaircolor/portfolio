@@ -46,11 +46,13 @@ const projects = [
   page('p1', { Название: 'Onliner', Показывать: true, Порядок: 1, Блок: 'Проекты', Отметка: '⭐️', Локация: 'Беларусь', Год: '2021—2022', 'В коллаборации': 'Студия Райт', Кратко: 'Экосистема', Ссылка: 'https://right.by/x' }),
   page('p2', { Название: 'NDA', Показывать: true, Порядок: 2, Блок: 'Проекты', Локация: 'США', Кратко: 'Секрет' }),
   page('p3', { Название: 'О чём это говорит?', Показывать: true, Порядок: 3, Блок: 'Своё', Кратко: 'Канал', Ссылка: 'https://t.me/toright' }),
+  page('p4', { Название: 'Бар о пай', Показывать: true, Порядок: 4, Блок: 'Спецпроекты', Ссылка: 'https://bar-or-pie.dianov.org/' }),
 ];
 const pageBlocks = {
   p1: [img('https://files.example/onliner.png?sig=2'), li('Пункт', {}, [li('Вложенный')]), p('Текст <script>', { bold: true })],
   p2: [p('Подробности')],
   p3: [],
+  p4: [],
 };
 const experience = [page('e1', { 'Роль и место': 'Бренд-стратег — Skip', Годы: '2025…', Порядок: 1, Показывать: true })];
 
@@ -91,7 +93,7 @@ test('loads Notion content into the model and renders it', async () => {
   assert.equal(model.home.photo[0].src, 'https://files.example/photo.png?sig=1');
   assert.deepEqual(model.home.projectsNote, []);
   assert.equal(model.home.links[0].rich[0].href, 'https://t.me/toright');
-  assert.equal(model.projects.length, 3);
+  assert.equal(model.projects.length, 4);
   assert.equal(model.projects[0].marker, '⭐️');
   assert.equal(model.projects[0].content[1].children[0].rich[0].t, 'Вложенный');
   assert.equal(model.experience[0].years, '2025…');
@@ -105,6 +107,8 @@ test('loads Notion content into the model and renders it', async () => {
   assert.match(html, /href="https:\/\/t.me\/toright" target="_blank" rel="noopener">О чём это говорит\? →/, 'empty page → row links out');
   assert.doesNotMatch(html, /projects-note/, 'empty note is hidden');
   assert.match(html, /data-more="Недостаточно проектов"/);
+  assert.match(html, /<section class="projects" aria-label="Спецпроекты">[\s\S]*<th scope="col">Спецпроекты<\/th>[\s\S]*Бар о пай →/, '«Блок» value → its own table');
+  assert.ok(html.indexOf('aria-label="Своё"') < html.indexOf('aria-label="Спецпроекты"'), 'after «Своё»');
 });
 
 test('explains a missing connection in Russian', async () => {
