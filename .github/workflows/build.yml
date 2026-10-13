@@ -3,7 +3,7 @@ name: Собрать сайт из Notion
 on:
   workflow_dispatch:          # кнопка «Run workflow» — обновить сайт прямо сейчас
   schedule:
-    - cron: '17 * * * *'      # и сам раз в час
+    - cron: '7,22,37,52 * * * *'  # и сам каждые 15 минут (GitHub иногда задерживает такие запуски)
   push:
     branches: [main]
   delete:                     # ветку удалили — её превью исчезает
