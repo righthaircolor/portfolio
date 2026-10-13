@@ -122,6 +122,8 @@ html:not(.js) .case-panel:target{display:block}
 .free-section .label-row+.row{margin-top:var(--s-para)}
 .free-section h2,.free-section h3{font-size:16px}
 .free-section .main>*+*{margin-top:var(--s-para)}
+.split{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);column-gap:var(--s-group)}
+.split>div>*+*{margin-top:var(--s-para)}
 .free-section .main ul{list-style:none;padding:0}
 .free-section .main ol{padding-left:1.2em}
 .free-section .main li+li{margin-top:var(--s-list)}
@@ -175,6 +177,7 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
   .free-section .aside{padding:0 0 var(--s-list)}
   .free-section .label-row .aside{padding:0}
   .free-section .aside:empty{display:none}
+  .split{grid-auto-flow:row;row-gap:var(--s-para)}
   .grid{display:flex;flex-direction:column;gap:40px}
   .left{padding-right:0;width:100%}
   .right{gap:40px}
