@@ -369,13 +369,13 @@ export function renderJournal(model, { siteUrl = '' } = {}) {
     const href = own ? `${slugs.get(t)}/` : safeHref(t.link);
     const attrs = href ? (own ? `href="${esc(href)}"` : linkAttrs(href)) : '';
     const source = [t.where, t.year].filter(Boolean).join(', ');
-    const readLabel = own ? 'Читать →' : t.where ? `Читать в «${t.where}» ↗` : 'Читать ↗';
+    const readLabel = own ? 'Читать →' : t.where ? `Читать в «${t.where}» →` : 'Читать →';
     const img = previewOf(t);
     const r = t.rubric ? ` data-rubric="${slugOf.get(t.rubric)}"` : '';
     const id = `t-${slugs.get(t)}`;
     const linked = (inner) => (href ? `<a ${attrs}>${inner}</a>` : inner);
     return {
-      li: `<li${r}><a href="#${id}" data-card="${id}">${esc(t.title)}${source ? `<span class="src">${esc(source)}${href && !own ? ' ↗' : ''}</span>` : ''}</a></li>`,
+      li: `<li${r}><a href="#${id}" data-card="${id}">${esc(t.title)}${source ? `<span class="src">${esc(source)}${href && !own ? ' →' : ''}</span>` : ''}</a></li>`,
       card: `<article class="card" id="${id}"${r}>
     <div class="card-row"><h2>${linked(esc(t.title))}${source ? `<span class="src">${esc(source)}</span>` : ''}</h2>
     <div class="card-main">${img ? `<figure>${linked(`<img src="${esc(asset(img.src))}" alt="" loading="lazy">`)}</figure>` : ''}${plain(t.summary).trim() ? `<p class="sum">${inline(t.summary)}</p>` : ''}${href ? `<a class="go" ${attrs}>${esc(readLabel)}</a>` : ''}</div></div>
@@ -427,7 +427,7 @@ export function renderTextPage(model, text, { siteUrl = '' } = {}) {
     barTitle: journalTitle,
     closeHref: '../',
     bodyClass: 'text-page',
-    aside: `<aside class="free-photo text-facts">${facts ? `<ul>${facts}</ul>` : ''}${href ? `<p><a ${linkAttrs(href)}>Оригинал ↗</a></p>` : ''}</aside>`,
+    aside: `<aside class="free-photo text-facts">${facts ? `<ul>${facts}</ul>` : ''}${href ? `<p><a ${linkAttrs(href)}>Оригинал →</a></p>` : ''}</aside>`,
     body: `<section class="statement"><h1>${esc(text.title)}</h1>${plain(text.summary).trim() ? `<p class="lede">${inline(text.summary)}</p>` : ''}</section>
   ${sections.map(freeSectionHtml).join('\n  ')}`,
   });
