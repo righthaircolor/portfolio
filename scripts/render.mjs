@@ -242,13 +242,15 @@ export function layoutFreePage(blocks = []) {
   const items = [...blocks];
   const statement = items[0]?.type === 'p' ? [items.shift()] : [];
   const out = [];
-  let section = null, row = null;
-  const ensure = () => { if (!section) { section = { label: null, rows: [] }; out.push(section); } return section; };
+  let section = null, row = null, rule = false;
+  // A divider becomes the top rule of the next section, exactly like the table rules on the home page.
+  const start = (label) => { section = { label, rows: [], rule }; rule = false; out.push(section); return section; };
+  const ensure = () => section || start(null);
   for (const b of items) {
     if (b.type === 'h' && b.level <= 2) {
-      section = { label: b.rich, rows: [] }; out.push(section); row = null;
+      start(b.rich); row = null;
     } else if (b.type === 'hr') {
-      out.push({ hr: true }); section = null; row = null;
+      rule = true; section = null; row = null;
     } else if (b.type === 'h') {
       row = { kind: 'sub', aside: [b], main: [] }; ensure().rows.push(row);
     } else if (b.type === 'columns') {
@@ -262,6 +264,7 @@ export function layoutFreePage(blocks = []) {
       row.main.push(b);
     }
   }
+  if (rule) out.push({ hr: true }); // a divider at the very end of the page
   return { statement, sections: out };
 }
 
@@ -276,7 +279,7 @@ function freeSectionHtml(section) {
     else if (first && first.kind === 'cols') first.asideHtml = label + first.asideHtml;
     else lead = `<div class="row label-row"><div class="aside">${label}</div></div>`;
   }
-  return `<section class="free-section">${lead}${rows.map((r) => `<div class="row"><div class="aside">${r.asideHtml}</div><div class="main">${blocksHtml(r.main)}</div></div>`).join('')}</section>`;
+  return `<section class="free-section${section.rule ? ' has-rule' : ''}">${lead}${rows.map((r) => `<div class="row"><div class="aside">${r.asideHtml}</div><div class="main">${blocksHtml(r.main)}</div></div>`).join('')}</section>`;
 }
 
 export function renderFreePage(model, page, { siteUrl = '' } = {}) {

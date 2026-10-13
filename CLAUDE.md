@@ -16,5 +16,5 @@
 - `scripts/notion.mjs` — Notion API; `scripts/content.mjs` — Notion → модель; `scripts/render.mjs` — HTML; `src/` — CSS/JS/шрифты.
 - `scripts/build-all.sh` — сборка в Actions: сайт из main + превью всех веток. Публиковать на Pages можно только из main,
   поэтому `.github/workflows/preview.yml` на пуш в ветку просто запускает `build.yml` на main.
-- Отступы — только через токены в `:root` (`--s-list` 8, `--s-para` 16, `--s-group` 24, `--s-top` 32, `--s-block` 48).
+- Отступы — только через токены в `:root` (`--s-list` 8, `--s-rule` 8 линия→подпись, `--s-para` 16, `--s-group` 24, `--s-top` 32, `--s-block` 48).
 - Шрифт один: Golos Text. Подписи разделов — капсом. Линии-разделители на «Обо мне» только там, где в Notion стоит divider.

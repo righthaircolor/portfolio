@@ -130,17 +130,17 @@ test('free page: statement, sections, subheads, columns and dividers', () => {
   assert.equal(page.content.at(-1).type, 'columns');
   const { statement, sections } = layoutFreePage(page.content);
   assert.equal(statement.length, 1);
-  assert.equal(sections.length, 5);
+  assert.equal(sections.length, 4);
   assert.equal(sections[2].rows[0].kind, 'sub');
-  assert.ok(sections[3].hr);
-  assert.equal(sections[4].rows[0].kind, 'cols');
+  assert.ok(sections[3].rule, 'divider becomes the top rule of the next section');
+  assert.equal(sections[3].rows[0].kind, 'cols');
   // Columns are flattened everywhere except free pages.
   assert.equal(convertBlock(blocks.at(-1))[0].type, 'p');
 
   const html = renderFreePage({ home: { name: [], photo: [] } }, page);
   assert.match(html, /<div class="aside"><h2 class="label">Ко мне приходят<\/h2><\/div><div class="main"><ul><li>Пункт/);
   assert.match(html, /label-row"><div class="aside"><h2 class="label">Подход<\/h2><\/div><\/div><div class="row"><div class="aside"><h3>Принцип<\/h3>/);
-  assert.match(html, /<hr class="divider">/);
+  assert.match(html, /<section class="free-section has-rule"><div class="row"><div class="aside"><h2 class="label">Помощь/);
   assert.match(html, /<div class="aside"><h2 class="label">Помощь<\/h2><p>Слева<\/p><\/div>/);
   assert.match(html, /href="\.\.\/style\.css"/);
 });
