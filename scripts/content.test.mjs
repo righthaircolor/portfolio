@@ -144,3 +144,12 @@ test('free page: statement, sections, subheads, columns and dividers', () => {
   assert.match(html, /<div class="aside"><h2 class="label">Помощь<\/h2><p>Слева<\/p><\/div>/);
   assert.match(html, /href="\.\.\/style\.css"/);
 });
+
+test('free page: three Notion columns split the main column', () => {
+  const P = (t) => ({ type: 'p', rich: [{ t }] });
+  const { sections } = layoutFreePage([P('Привет'), { type: 'h', level: 2, rich: [{ t: 'Как' }] }, { type: 'columns', cols: [[], [P('А')], [P('Б')]] }]);
+  assert.equal(sections[0].rows[0].kind, 'plain');
+  assert.equal(sections[0].rows[0].main[0].type, 'split');
+  const html = renderFreePage({ home: { name: [], photo: [] } }, { title: 'Обо мне', content: [P('Привет'), { type: 'h', level: 2, rich: [{ t: 'Как' }] }, { type: 'columns', cols: [[], [P('А')], [P('Б')]] }] });
+  assert.match(html, /<div class="aside"><h2 class="label">Как<\/h2><\/div><div class="main"><div class="split"><div><p>А<\/p><\/div><div><p>Б<\/p><\/div><\/div>/);
+});

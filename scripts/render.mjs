@@ -75,6 +75,9 @@ export function blocksHtml(blocks = [], { alt = '' } = {}) {
       case 'hr':
         html += '<hr>';
         break;
+      case 'split':
+        html += `<div class="split">${b.cols.map((col) => `<div>${blocksHtml(col, { alt })}</div>`).join('')}</div>`;
+        break;
     }
   }
   return html;
@@ -232,7 +235,8 @@ ${projects.map((p) => casePanel(p, fieldText(h.ownTitle) || 'Своё')).join('\
 // «Обо мне» and similar free pages.
 // Layout rules (see README): the first paragraph is the big statement; H1/H2 start a section and become
 // an uppercase label in the narrow column; H3 + following text = subheading left, text right;
-// Notion columns = left column → narrow column, the rest → main column; a divider draws a line;
+// Notion columns = left column → narrow column, the rest → main column (3+ columns split the main
+// column into equal columns; leave the first Notion column empty to skip the narrow one); a divider draws a line;
 // anything else goes into the main column.
 export function layoutFreePage(blocks = []) {
   const items = [...blocks];
@@ -248,8 +252,10 @@ export function layoutFreePage(blocks = []) {
     } else if (b.type === 'h') {
       row = { kind: 'sub', aside: [b], main: [] }; ensure().rows.push(row);
     } else if (b.type === 'columns') {
+      // 2 Notion columns: narrow | main. 3+ columns: narrow (may be empty) | main split into columns.
       const [aside = [], ...rest] = b.cols;
-      ensure().rows.push({ kind: aside.length ? 'cols' : 'plain', aside, main: rest.flat() });
+      const main = rest.length > 1 ? [{ type: 'split', cols: rest }] : rest.flat();
+      ensure().rows.push({ kind: aside.length ? 'cols' : 'plain', aside, main });
       row = null;
     } else {
       if (!row) { row = { kind: 'plain', aside: [], main: [] }; ensure().rows.push(row); }
