@@ -139,6 +139,8 @@ function prop(page, name) {
       return p.select?.name || '';
     case 'url':
       return p.url || '';
+    case 'files':
+      return (p.files || []).map((f) => (f.type === 'external' ? f.external?.url : f.file?.url)).filter(Boolean);
     default:
       return undefined;
   }
@@ -164,6 +166,8 @@ export function parseProject(page, blocks) {
     summary: prop(page, 'Кратко') || [],
     link: text(prop(page, 'Ссылка')),
     block: text(prop(page, 'Блок')) || 'Проекты',
+    // «Картинка при наведении»: shown next to the cursor while hovering the row (first file only).
+    hover: (prop(page, 'Картинка при наведении') || [])[0] || '',
     content: blocks.flatMap(convertBlock).filter((b) => !(b.type === 'p' && !plain(b.rich).trim())),
   };
 }

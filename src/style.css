@@ -206,6 +206,10 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
 @keyframes wand-ring{from{opacity:1;transform:scale(.4)}to{opacity:0;transform:scale(4)}}
 @media (prefers-reduced-motion:reduce){.wand-trail,.wand-burst{display:none}}
 
+/* «Картинка при наведении»: a small picture next to the cursor while it is over the row (mouse only) */
+.hover-img{position:fixed;left:0;top:0;width:160px;height:auto;pointer-events:none;z-index:4;opacity:0;transform:translate(-9999px,0);transition:opacity .18s}
+.hover-img.is-on{opacity:1}
+
 /* Tablet */
 @media (max-width:900px){
   .free-page,.journal-page{--photo-w:calc(28% + 26px);--free-gap:22px}

@@ -80,7 +80,12 @@ export async function localizeImages(model, { outDir, baseDir = process.cwd(), m
   }
 
   await walk(model.home.photo, 900);
-  for (const p of model.projects) await walk(p.content, maxWidth);
+  for (const p of model.projects) {
+    await walk(p.content, maxWidth);
+    if (p.hover) {
+      try { p.hover = await save(p.hover, 480); } catch (e) { console.warn(e.message); p.hover = ''; }
+    }
+  }
   if (model.about) await walk(model.about.content, maxWidth);
   if (model.journal) {
     await walk(model.journal.content, maxWidth);
