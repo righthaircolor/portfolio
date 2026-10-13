@@ -113,6 +113,9 @@ function titleCell(p) {
   return projectTitle(p);
 }
 
+// Optional picture that follows the cursor over the row (Notion: «Картинка при наведении»).
+const hoverAttr = (p) => (p.hover ? ` data-hover-img="${esc(asset(p.hover))}"` : '');
+
 const meta = (value, cls = '') => `<td class="meta${cls}${value ? '' : ' is-empty'}">${value ? esc(value) : '—'}</td>`;
 
 function casePanel(p, ownTitle) {
@@ -187,11 +190,11 @@ export function renderHome(model, { siteUrl = '' } = {}) {
    </section>`
     : '';
 
-  const projectRow = (p, i = 0) => `<tr${i >= visibleCount ? ' class="is-extra"' : ''}><td class="title">${titleCell(p)}</td>${meta(p.collab, ' collab')}${meta(p.location)}${meta(p.year)}</tr>`;
+  const projectRow = (p, i = 0) => `<tr${i >= visibleCount ? ' class="is-extra"' : ''}${hoverAttr(p)}><td class="title">${titleCell(p)}</td>${meta(p.collab, ' collab')}${meta(p.location)}${meta(p.year)}</tr>`;
   const projectRows = main.map(projectRow).join('\n      ');
 
   const ownRows = own
-    .map((p) => `<tr><td class="title">${titleCell(p)}</td><td class="desc" colspan="3">${inline(p.summary)}</td></tr>`)
+    .map((p) => `<tr${hoverAttr(p)}><td class="title">${titleCell(p)}</td><td class="desc" colspan="3">${inline(p.summary)}</td></tr>`)
     .join('\n      ');
 
   const cols = '<colgroup><col class="c-title"><col class="c-collab"><col class="c-location"><col class="c-year"></colgroup>';

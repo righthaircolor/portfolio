@@ -1133,6 +1133,23 @@
    "content": []
   },
   {
+   "id": "burnout",
+   "title": "С выгоранием можно справиться без психотерапевта",
+   "marker": "",
+   "location": "",
+   "year": "",
+   "collab": "",
+   "summary": [
+    {
+     "t": "Разобралась, что такое выгорание и почему возникает. Провела интервью с психологом и поделилась своим опытом."
+    }
+   ],
+   "link": "https://readymag.website/aniskovich/deal-with-burnout/",
+   "block": "Своё",
+   "hover": "media/burnout-hover.png",
+   "content": []
+  },
+  {
    "id": "text-21",
    "title": "Бар о пай",
    "marker": "",

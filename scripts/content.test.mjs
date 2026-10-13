@@ -45,7 +45,9 @@ const page = (id, o) => ({ object: 'page', id, properties: props(o) });
 const projects = [
   page('p1', { Название: 'Onliner', Показывать: true, Порядок: 1, Блок: 'Проекты', Отметка: '⭐️', Локация: 'Беларусь', Год: '2021—2022', 'В коллаборации': 'Студия Райт', Кратко: 'Экосистема', Ссылка: 'https://right.by/x' }),
   page('p2', { Название: 'NDA', Показывать: true, Порядок: 2, Блок: 'Проекты', Локация: 'США', Кратко: 'Секрет' }),
-  page('p3', { Название: 'О чём это говорит?', Показывать: true, Порядок: 3, Блок: 'Своё', Кратко: 'Канал', Ссылка: 'https://t.me/toright' }),
+  { ...page('p3', { Название: 'О чём это говорит?', Показывать: true, Порядок: 3, Блок: 'Своё', Кратко: 'Канал', Ссылка: 'https://t.me/toright' }),
+    properties: { ...props({ Название: 'О чём это говорит?', Показывать: true, Порядок: 3, Блок: 'Своё', Кратко: 'Канал', Ссылка: 'https://t.me/toright' }),
+      'Картинка при наведении': { type: 'files', files: [{ type: 'file', name: 'x.png', file: { url: 'https://files.example/hover.png?sig=3' } }] } } },
   page('p4', { Название: 'Бар о пай', Показывать: true, Порядок: 4, Блок: 'Спецпроекты', Ссылка: 'https://bar-or-pie.dianov.org/' }),
 ];
 const pageBlocks = {
@@ -97,6 +99,7 @@ test('loads Notion content into the model and renders it', async () => {
   assert.equal(model.projects[0].marker, '⭐️');
   assert.equal(model.projects[0].content[1].children[0].rich[0].t, 'Вложенный');
   assert.equal(model.experience[0].years, '2025…');
+  assert.equal(model.projects[2].hover, 'https://files.example/hover.png?sig=3');
 
   const html = renderHome(model);
   assert.match(html, /<a href="#onliner" data-case="onliner">/);
@@ -107,6 +110,7 @@ test('loads Notion content into the model and renders it', async () => {
   assert.match(html, /href="https:\/\/t.me\/toright" target="_blank" rel="noopener">О чём это говорит\? →/, 'empty page → row links out');
   assert.doesNotMatch(html, /projects-note/, 'empty note is hidden');
   assert.match(html, /data-more="Недостаточно проектов"/);
+  assert.match(html, /<tr data-hover-img="https:\/\/files.example\/hover.png\?sig=3"><td class="title"><a href="https:\/\/t.me\/toright"/, 'hover picture on the row');
   assert.match(html, /<section class="projects" aria-label="Спецпроекты">[\s\S]*<th scope="col">Спецпроекты<\/th>[\s\S]*Бар о пай →/, '«Блок» value → its own table');
   assert.ok(html.indexOf('aria-label="Своё"') < html.indexOf('aria-label="Спецпроекты"'), 'after «Своё»');
 });

@@ -58,6 +58,30 @@ if (location.hash.length > 1) {
   openCase(id);
 }
 
+// «Картинка при наведении»: rows with data-hover-img show that picture next to the cursor (mouse only).
+(() => {
+  const rows = document.querySelectorAll('[data-hover-img]');
+  if (!rows.length || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  const img = document.createElement('img');
+  img.className = 'hover-img';
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(img);
+  rows.forEach((row) => {
+    new Image().src = row.dataset.hoverImg; // preload, so it appears at once
+    row.addEventListener('mouseenter', () => { img.src = row.dataset.hoverImg; img.classList.add('is-on'); });
+    row.addEventListener('mouseleave', () => img.classList.remove('is-on'));
+    row.addEventListener('mousemove', (e) => {
+      // above and to the right of the cursor, so the row being read stays visible;
+      // flips to the left near the right edge and below the cursor near the top
+      const w = img.offsetWidth || 160, h = img.offsetHeight || 0;
+      const x = e.clientX + 16 + w > innerWidth ? e.clientX - 16 - w : e.clientX + 16;
+      const y = e.clientY - h - 16 < 8 ? e.clientY + 24 : e.clientY - h - 16;
+      img.style.transform = `translate(${x}px, ${y}px)`;
+    });
+  });
+})();
+
 // Magic wand: a trail of sparks and a burst on click (mouse only).
 (() => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
