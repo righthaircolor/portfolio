@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from './notion.mjs';
 import { loadFromNotion } from './content.mjs';
 import { localizeImages } from './images.mjs';
-import { renderHome, renderFreePage, renderJournal, renderTextPage, journalSlugs } from './render.mjs';
+import { renderHome, renderFreePage, renderJournal, renderTextPage, journalSlugs, livesOnSite } from './render.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(root, 'dist');
@@ -48,7 +48,7 @@ if (model.journal) {
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, 'index.html'), mark(renderJournal(model, { siteUrl: config.siteUrl }), live));
   for (const [text, slug] of journalSlugs(model.journal)) {
-    if (!text.content.length) continue;
+    if (!livesOnSite(text)) continue;
     await mkdir(path.join(dir, slug), { recursive: true });
     await writeFile(path.join(dir, slug, 'index.html'), mark(renderTextPage(model, text, { siteUrl: config.siteUrl }), live));
   }

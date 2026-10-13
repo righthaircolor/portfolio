@@ -92,33 +92,49 @@ if (location.hash.length > 1) {
   }, { passive: true });
 })();
 
-// «Кейсы и наблюдения»: the rubric menu filters the table; the rubric is kept in the address (#stati),
-// so a filtered list can be shared and the Back button returns to the previous rubric.
+// «Кейсы и наблюдения»: rubrics filter the list and the feed (the rubric is kept in the address, #stati);
+// a title in the list scrolls the feed to its card; the card in view is highlighted in the list.
 (() => {
-  const nav = document.querySelector('.journal-nav');
-  if (!nav) return;
-  const links = [...nav.querySelectorAll('a[data-rubric]')];
-  const rows = [...document.querySelectorAll('.journal tbody tr')];
+  const rubricLinks = [...document.querySelectorAll('.j-rubrics a[data-rubric]')];
+  if (!rubricLinks.length) return;
+  const items = [...document.querySelectorAll('.j-list li, .j-feed .card')];
+  const cards = [...document.querySelectorAll('.j-feed .card')];
+  const listLinks = [...document.querySelectorAll('.j-list a[data-card]')];
+  const empty = document.querySelector('.j-empty');
+  const spy = () => {
+    const visible = cards.filter((c) => !c.hidden);
+    let current = visible[0];
+    for (const c of visible) if (c.getBoundingClientRect().top < innerHeight * 0.35) current = c;
+    listLinks.forEach((a) => a.classList.toggle('is-current', !!current && a.dataset.card === current.id));
+  };
   const apply = () => {
     const wanted = decodeURIComponent(location.hash.slice(1));
-    const current = links.some((a) => a.dataset.rubric === wanted) ? wanted : '';
-    links.forEach((a) => (a.dataset.rubric === current ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
-    rows.forEach((tr) => { tr.hidden = !!current && tr.dataset.rubric !== current; });
+    const current = rubricLinks.some((a) => a.dataset.rubric === wanted) ? wanted : '';
+    rubricLinks.forEach((a) => (a.dataset.rubric === current ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+    items.forEach((el) => { el.hidden = !!current && el.dataset.rubric !== current; });
+    if (empty) empty.hidden = cards.some((c) => !c.hidden);
+    spy();
   };
-  nav.addEventListener('click', (e) => {
-    const a = e.target.closest('a[data-rubric]');
-    if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  rubricLinks.forEach((a) => a.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     history.pushState(null, '', a.dataset.rubric ? '#' + a.dataset.rubric : location.pathname + location.search);
+    window.scrollTo({ top: 0 });
     apply();
-  });
+  }));
+  listLinks.forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById(a.dataset.card)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  addEventListener('scroll', spy, { passive: true });
+  addEventListener('load', spy);
   addEventListener('popstate', apply);
   addEventListener('hashchange', apply);
   apply();
 })();
 
 // «Закрыть ×» on free pages also works with Esc.
-if (document.body.classList.contains('free-page')) {
+if (document.body.classList.contains('free-page') || document.body.classList.contains('journal-page')) {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !e.defaultPrevented) location.href = document.querySelector('.page-close')?.href || '../';
   });
