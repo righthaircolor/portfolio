@@ -126,7 +126,7 @@ function casePanel(p, ownTitle) {
    ${metaLine ? `<p class="case-meta">${metaLine}</p>` : ''}
    ${plain(p.summary).trim() ? `<p class="case-summary">${inline(p.summary)}</p>` : ''}
    <div class="case-body">${blocksHtml(p.content, { alt: p.title })}</div>
-   ${href ? `<a class="case-source" ${linkAttrs(href)}>Открыть оригинал ↗</a>` : ''}
+   ${href ? `<a class="case-source" ${linkAttrs(href)}>Открыть оригинал →</a>` : ''}
   </article>
  </dialog>`;
 }
@@ -350,39 +350,45 @@ export const livesOnSite = (t) => !safeHref(t.link) && t.content.some((b) => b.t
 // The preview is the first picture inside the material's Notion page.
 const previewOf = (t) => t.content.find((b) => b.type === 'image' && b.src);
 
+// Every option of «Рубрика» in Notion order (empty ones too), then any value missing from the options.
+function journalRubrics(j) {
+  const used = new Set(['vse']);
+  const counts = new Map();
+  for (const t of j.texts) if (t.rubric) counts.set(t.rubric, (counts.get(t.rubric) || 0) + 1);
+  return [...new Set([...(j.rubrics || []), ...counts.keys()])].map((r) => ({ name: r, slug: slugify(r, used), count: counts.get(r) || 0 }));
+}
+const journalLead = (j) => {
+  const lead = j.content.filter((b) => b.type === 'p');
+  return lead.length ? `<div class="j-lead">${lead.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</div>` : '';
+};
+
 export function renderJournal(model, { siteUrl = '' } = {}) {
   setPage(siteUrl, '../');
   const j = model.journal;
   const name = fieldText(model.home.name) || 'Ксения Анискович';
   const title = j.title || 'Кейсы и наблюдения';
   const slugs = journalSlugs(j);
-  const rubricSlugs = new Set(['vse']);
-  const counts = new Map();
-  for (const t of j.texts) if (t.rubric) counts.set(t.rubric, (counts.get(t.rubric) || 0) + 1);
-  // Every option of «Рубрика» in Notion order (empty ones too), then any value missing from the options.
-  const rubrics = [...new Set([...(j.rubrics || []), ...counts.keys()])]
-    .map((r) => ({ name: r, slug: slugify(r, rubricSlugs), count: counts.get(r) || 0 }));
+  const rubrics = journalRubrics(j);
   const slugOf = new Map(rubrics.map((r) => [r.name, r.slug]));
 
-  const items = j.texts.map((t) => {
+  const items = j.texts.map((t, i) => {
     const own = livesOnSite(t);
     const href = own ? `${slugs.get(t)}/` : safeHref(t.link);
     const attrs = href ? (own ? `href="${esc(href)}"` : linkAttrs(href)) : '';
     const source = [t.where, t.year].filter(Boolean).join(', ');
-    const readLabel = own ? 'Читать →' : t.where ? `Читать в «${t.where}» ↗` : 'Читать ↗';
+    const readLabel = own ? 'Читать →' : t.where ? `Читать в «${t.where}» →` : 'Читать →';
     const img = previewOf(t);
     const r = t.rubric ? ` data-rubric="${slugOf.get(t.rubric)}"` : '';
     const id = `t-${slugs.get(t)}`;
     const linked = (inner) => (href ? `<a ${attrs}>${inner}</a>` : inner);
     return {
-      li: `<li${r}><a href="#${id}" data-card="${id}">${esc(t.title)}${source ? `<span class="src">${esc(source)}${href && !own ? ' ↗' : ''}</span>` : ''}</a></li>`,
-      card: `<article class="card" id="${id}"${r}>
+      li: `<li${r}><a href="#${id}" data-card="${id}"><span class="t">${esc(t.title)}</span>${source ? `<span class="src">${esc(source)}</span>` : ''}</a></li>`,
+      card: `<article class="card${i === 0 ? ' is-first' : ''}" id="${id}"${r}>
     <div class="card-row"><h2>${linked(esc(t.title))}${source ? `<span class="src">${esc(source)}</span>` : ''}</h2>
     <div class="card-main">${img ? `<figure>${linked(`<img src="${esc(asset(img.src))}" alt="" loading="lazy">`)}</figure>` : ''}${plain(t.summary).trim() ? `<p class="sum">${inline(t.summary)}</p>` : ''}${href ? `<a class="go" ${attrs}>${esc(readLabel)}</a>` : ''}</div></div>
    </article>`,
     };
   });
-  const lead = j.content.filter((b) => b.type === 'p');
   return `${head({ title: `${title} — ${name}`, description: fieldText(model.home.description) })}
 <body class="journal-page">
 <header class="j-head">
@@ -391,7 +397,7 @@ export function renderJournal(model, { siteUrl = '' } = {}) {
 </header>
 <main class="j">
  <aside class="j-index">
-  ${lead.length ? `<div class="j-lead">${lead.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</div>` : ''}
+  ${journalLead(j)}
   <ul class="j-rubrics" aria-label="Рубрики">
    <li><a href="./" data-rubric="" aria-current="true">Все <span class="n">${j.texts.length}</span></a></li>
    ${rubrics.map((r) => `<li><a href="#${r.slug}" data-rubric="${r.slug}">${esc(r.name)} <span class="n">${r.count}</span></a></li>`).join('\n   ')}
@@ -411,24 +417,39 @@ export function renderJournal(model, { siteUrl = '' } = {}) {
 `;
 }
 
-// A text that lives on the site: /journal/<slug>/. Same layout rules as «Обо мне», without the big first paragraph:
-// the title is the statement, and the left column holds rubric, place, year and the original link.
+// A text that lives on the site: /journal/<slug>/. Left column = the journal's phrase and rubrics (they lead back
+// to the list), right column = title, place/year under it, then the text laid out by the «Обо мне» rules.
+// The header line breaks between the columns, like an open case panel. × returns to the card in the list.
 export function renderTextPage(model, text, { siteUrl = '' } = {}) {
   setPage(siteUrl, '../../');
-  const journalTitle = model.journal?.title || 'Кейсы и наблюдения';
+  const j = model.journal;
+  const name = fieldText(model.home.name) || 'Ксения Анискович';
+  const journalTitle = j?.title || 'Кейсы и наблюдения';
+  const slug = journalSlugs(j).get(text);
   const { sections } = layoutFreePage(text.content, { statement: false });
-  const href = safeHref(text.link);
-  // The rubric leads back to the list filtered by it (same slug as in the journal menu).
-  const rubric = text.rubric ? `<li class="journal-nav"><a href="../#${slugify(text.rubric, new Set(['vse']))}">${esc(text.rubric)}</a></li>` : '';
-  const facts = rubric + [text.where, text.year].filter(Boolean).map((v) => `<li>${esc(v)}</li>`).join('');
-  return freeShell({
-    model,
-    title: text.title,
-    barTitle: journalTitle,
-    closeHref: '../',
-    bodyClass: 'text-page',
-    aside: `<aside class="free-photo text-facts">${facts ? `<ul>${facts}</ul>` : ''}${href ? `<p><a ${linkAttrs(href)}>Оригинал ↗</a></p>` : ''}</aside>`,
-    body: `<section class="statement"><h1>${esc(text.title)}</h1>${plain(text.summary).trim() ? `<p class="lede">${inline(text.summary)}</p>` : ''}</section>
-  ${sections.map(freeSectionHtml).join('\n  ')}`,
-  });
+  const facts = [text.where, text.year].filter(Boolean).join(', ');
+  const rubrics = journalRubrics(j);
+  return `${head({ title: `${text.title} — ${name}`, description: plain(text.summary).trim() || fieldText(model.home.description) })}
+<body class="journal-page text-page">
+<header class="j-head">
+ <a class="site-name" href="../../">${esc(name)}</a>
+ <div class="bar"><a class="bar-title" href="../">${esc(journalTitle)}</a><a class="page-close" href="../${slug ? `#t-${slug}` : ''}" data-back aria-label="Закрыть">×</a></div>
+</header>
+<main class="j">
+ <aside class="j-index">
+  ${journalLead(j)}
+  <ul class="j-rubrics" aria-label="Рубрики">
+   <li><a href="../">Все <span class="n">${j.texts.length}</span></a></li>
+   ${rubrics.map((r) => `<li><a href="../#${r.slug}"${r.name === text.rubric ? ' aria-current="true"' : ''}>${esc(r.name)} <span class="n">${r.count}</span></a></li>`).join('\n   ')}
+  </ul>
+ </aside>
+ <article class="j-text">
+  <header class="text-head"><h1>${esc(text.title)}</h1>${facts ? `<p class="src">${esc(facts)}</p>` : ''}</header>
+  ${sections.map(freeSectionHtml).join('\n  ')}
+ </article>
+</main>
+<script src="../../site.js" defer></script>
+</body>
+</html>
+`;
 }
