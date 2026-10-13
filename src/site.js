@@ -92,6 +92,31 @@ if (location.hash.length > 1) {
   }, { passive: true });
 })();
 
+// «Кейсы и наблюдения»: the rubric menu filters the table; the rubric is kept in the address (#stati),
+// so a filtered list can be shared and the Back button returns to the previous rubric.
+(() => {
+  const nav = document.querySelector('.journal-nav');
+  if (!nav) return;
+  const links = [...nav.querySelectorAll('a[data-rubric]')];
+  const rows = [...document.querySelectorAll('.journal tbody tr')];
+  const apply = () => {
+    const wanted = decodeURIComponent(location.hash.slice(1));
+    const current = links.some((a) => a.dataset.rubric === wanted) ? wanted : '';
+    links.forEach((a) => (a.dataset.rubric === current ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+    rows.forEach((tr) => { tr.hidden = !!current && tr.dataset.rubric !== current; });
+  };
+  nav.addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-rubric]');
+    if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    history.pushState(null, '', a.dataset.rubric ? '#' + a.dataset.rubric : location.pathname + location.search);
+    apply();
+  });
+  addEventListener('popstate', apply);
+  addEventListener('hashchange', apply);
+  apply();
+})();
+
 // «Закрыть ×» on free pages also works with Esc.
 if (document.body.classList.contains('free-page')) {
   document.addEventListener('keydown', (e) => {

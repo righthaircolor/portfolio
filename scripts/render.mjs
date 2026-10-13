@@ -254,9 +254,9 @@ ${projects.map((p) => casePanel(p, fieldText(h.ownTitle) || 'Своё')).join('\
 // Notion columns = left column → narrow column, the rest → main column (3+ columns split the main
 // column into equal columns; leave the first Notion column empty to skip the narrow one); a divider draws a line;
 // anything else goes into the main column.
-export function layoutFreePage(blocks = []) {
+export function layoutFreePage(blocks = [], { statement: withStatement = true } = {}) {
   const items = [...blocks];
-  const statement = items[0]?.type === 'p' ? [items.shift()] : [];
+  const statement = withStatement && items[0]?.type === 'p' ? [items.shift()] : [];
   const out = [];
   let section = null, row = null, rule = false;
   // A divider becomes the top rule of the next section, exactly like the table rules on the home page.
@@ -298,28 +298,122 @@ function freeSectionHtml(section) {
   return `<section class="free-section${section.rule ? ' has-rule' : ''}">${lead}${rows.map((r) => `<div class="row"><div class="aside">${r.asideHtml}</div><div class="main">${blocksHtml(r.main)}</div></div>`).join('')}</section>`;
 }
 
+// Shared frame of the inner pages: name | bar with the title and ×, a narrow left column, the text.
+function freeShell({ model, title, barTitle = title, closeHref, aside, body, bodyClass = '' }) {
+  const name = fieldText(model.home.name) || 'Ксения Анискович';
+  return `${head({ title: `${title} — ${name}`, description: fieldText(model.home.description) })}
+<body class="free-page${bodyClass ? ' ' + bodyClass : ''}">
+<header class="page-head">
+ <a class="site-name" href="${pageBase}">${esc(name)}</a>
+ <div class="bar"><span>${esc(barTitle)}</span><a class="page-close" href="${closeHref}" aria-label="Закрыть">×</a></div>
+</header>
+<main class="free">
+ ${aside}
+ <div class="free-text">
+  ${body}
+ </div>
+</main>
+<script src="${pageBase}site.js" defer></script>
+</body>
+</html>
+`;
+}
+
+const statementHtml = (statement) =>
+  statement.length ? `<section class="statement">${statement.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</section>` : '';
+
 export function renderFreePage(model, page, { siteUrl = '' } = {}) {
   setPage(siteUrl, '../');
   const h = model.home;
   const name = fieldText(h.name) || 'Ксения Анискович';
   const photo = (h.photo || []).find((b) => b.type === 'image' && b.src);
   const { statement, sections } = layoutFreePage(page.content);
-  const title = page.title || 'Обо мне';
-  return `${head({ title: `${title} — ${name}`, description: fieldText(h.description) })}
-<body class="free-page">
-<header class="page-head">
- <a class="site-name" href="../">${esc(name)}</a>
- <div class="bar"><span>${esc(title)}</span><a class="page-close" href="../" aria-label="Закрыть">×</a></div>
-</header>
-<main class="free">
- <aside class="free-photo">${photo ? `<img class="portrait" src="${esc(asset(photo.src))}" alt="${esc(name)}">` : ''}</aside>
- <div class="free-text">
-  ${statement.length ? `<section class="statement">${statement.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</section>` : ''}
+  return freeShell({
+    model,
+    title: page.title || 'Обо мне',
+    closeHref: '../',
+    aside: `<aside class="free-photo">${photo ? `<img class="portrait" src="${esc(asset(photo.src))}" alt="${esc(name)}">` : ''}</aside>`,
+    body: `${statementHtml(statement)}
+  ${sections.map(freeSectionHtml).join('\n  ')}`,
+  });
+}
+
+// «Кейсы и наблюдения»: rubric menu in the left column filters the table (all rubrics by default).
+export function journalSlugs(journal) {
+  const used = new Set();
+  return new Map(journal.texts.map((t) => [t, slugify(t.title, used)]));
+}
+
+export function renderJournal(model, { siteUrl = '' } = {}) {
+  setPage(siteUrl, '../');
+  const j = model.journal;
+  const title = j.title || 'Кейсы и наблюдения';
+  const slugs = journalSlugs(j);
+  const rubricSlugs = new Set(['vse']);
+  const counts = new Map();
+  for (const t of j.texts) if (t.rubric) counts.set(t.rubric, (counts.get(t.rubric) || 0) + 1);
+  // Rubrics in Notion's option order, then any others; empty ones are not shown.
+  const rubrics = [...new Set([...(j.rubrics || []), ...counts.keys()])]
+    .filter((r) => counts.has(r))
+    .map((r) => ({ name: r, slug: slugify(r, rubricSlugs), count: counts.get(r) }));
+  const slugOf = new Map(rubrics.map((r) => [r.name, r.slug]));
+  const hasYears = j.texts.some((t) => t.year);
+
+  const titleOf = (t) => {
+    if (t.content.length) return `<a href="${slugs.get(t)}/">${esc(t.title)}</a>`;
+    const href = safeHref(t.link);
+    return href ? `<a ${linkAttrs(href)}>${esc(t.title)} →</a>` : esc(t.title);
+  };
+  const rows = j.texts
+    .map((t) => `<tr${t.rubric ? ` data-rubric="${slugOf.get(t.rubric)}"` : ''}><td class="title">${titleOf(t)}</td>${meta(t.rubric)}${meta(t.where)}${hasYears ? meta(t.year) : ''}</tr>`)
+    .join('\n      ');
+  const nav = `<nav class="free-photo journal-nav" aria-label="Рубрики">
+  <ul>
+   <li><a href="./" data-rubric="" aria-current="true">Все <span class="n">${j.texts.length}</span></a></li>
+   ${rubrics.map((r) => `<li><a href="#${r.slug}" data-rubric="${r.slug}">${esc(r.name)} <span class="n">${r.count}</span></a></li>`).join('\n   ')}
+  </ul>
+ </nav>`;
+  const { statement, sections } = layoutFreePage(j.content);
+  const cols = hasYears
+    ? '<colgroup><col class="c-title"><col class="c-collab"><col class="c-location"><col class="c-year"></colgroup>'
+    : '<colgroup><col class="c-text"><col class="c-rubric"><col class="c-where"></colgroup>';
+  return freeShell({
+    model,
+    title,
+    closeHref: '../',
+    bodyClass: 'journal-page',
+    aside: nav,
+    body: `${statementHtml(statement)}
   ${sections.map(freeSectionHtml).join('\n  ')}
- </div>
-</main>
-<script src="../site.js" defer></script>
-</body>
-</html>
-`;
+  ${j.texts.length ? `<section class="projects journal" aria-label="Тексты">
+   <table>${cols}
+    <thead><tr><th scope="col">Текст</th><th scope="col">Рубрика</th><th scope="col">Где</th>${hasYears ? '<th scope="col">Год</th>' : ''}</tr></thead>
+    <tbody>
+      ${rows}
+    </tbody>
+   </table>
+  </section>` : ''}`,
+  });
+}
+
+// A text that lives on the site: /journal/<slug>/. Same layout rules as «Обо мне», without the big first paragraph:
+// the title is the statement, and the left column holds rubric, place, year and the original link.
+export function renderTextPage(model, text, { siteUrl = '' } = {}) {
+  setPage(siteUrl, '../../');
+  const journalTitle = model.journal?.title || 'Кейсы и наблюдения';
+  const { sections } = layoutFreePage(text.content, { statement: false });
+  const href = safeHref(text.link);
+  // The rubric leads back to the list filtered by it (same slug as in the journal menu).
+  const rubric = text.rubric ? `<li class="journal-nav"><a href="../#${slugify(text.rubric, new Set(['vse']))}">${esc(text.rubric)}</a></li>` : '';
+  const facts = rubric + [text.where, text.year].filter(Boolean).map((v) => `<li>${esc(v)}</li>`).join('');
+  return freeShell({
+    model,
+    title: text.title,
+    barTitle: journalTitle,
+    closeHref: '../',
+    bodyClass: 'text-page',
+    aside: `<aside class="free-photo text-facts">${facts ? `<ul>${facts}</ul>` : ''}${href ? `<p><a ${linkAttrs(href)}>Оригинал ↗</a></p>` : ''}</aside>`,
+    body: `<section class="statement"><h1>${esc(text.title)}</h1>${plain(text.summary).trim() ? `<p class="lede">${inline(text.summary)}</p>` : ''}</section>
+  ${sections.map(freeSectionHtml).join('\n  ')}`,
+  });
 }

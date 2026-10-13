@@ -133,6 +133,20 @@ html:not(.js) .case-panel:target{display:block}
 hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
 .free-section.has-rule{border-top:.5px solid var(--line);padding-top:var(--s-rule)}
 
+/* «Кейсы и наблюдения»: rubric menu on the left filters the table */
+.journal-nav ul{list-style:none;padding:var(--s-top) 0 0;display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-list)}
+.journal-nav a{text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
+.journal-nav a:hover,.journal-nav a[aria-current]{color:var(--ink)}
+.journal-nav .n{font-size:11px;letter-spacing:0;position:relative;top:-.55em;margin-left:1px}
+.journal col.c-text{width:54%}.journal col.c-rubric{width:20%}.journal col.c-where{width:26%}
+.projects tbody tr[hidden]{display:none!important}
+/* A text that lives on the site: the title is the statement, facts sit in the left column */
+.statement h1{font-size:clamp(22px,2.05vw,34px);line-height:1.18;font-weight:400;max-width:1000px}
+.statement p.lede{font-size:16px;line-height:inherit;margin-top:var(--s-para);max-width:620px}
+.text-facts{padding-top:var(--s-top)}
+.text-facts ul{list-style:none;padding:0;display:grid;gap:var(--s-list);color:var(--muted)}
+.text-facts ul+p{margin-top:var(--s-group)}
+
 /* The portrait grows from the home sidebar into the column (browsers with cross-page view transitions). */
 @view-transition{navigation:auto}
 .portrait{view-transition-name:portrait}
@@ -180,6 +194,14 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
   .free-section .label-row .aside{padding:0}
   .free-section .aside:empty{display:none}
   .split{grid-auto-flow:row;row-gap:var(--s-para)}
+  /* Journal: statement, then the rubric menu as one line, then the table */
+  .journal-page .free{display:flex;flex-direction:column;gap:28px}
+  .journal-page .free-text{display:contents}
+  .journal-page .statement{order:0;padding-top:4px}
+  .journal-page .journal-nav{order:1;position:static}
+  .journal-page .free-section,.journal-page .journal{order:2}
+  .journal-nav ul{flex-direction:row;flex-wrap:wrap;gap:var(--s-list) var(--s-group);padding:0}
+  .text-facts{padding-top:0}
   .grid{display:flex;flex-direction:column;gap:40px}
   .left{padding-right:0;width:100%}
   .right{gap:40px}

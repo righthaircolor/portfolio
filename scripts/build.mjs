@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from './notion.mjs';
 import { loadFromNotion } from './content.mjs';
 import { localizeImages } from './images.mjs';
-import { renderHome, renderFreePage } from './render.mjs';
+import { renderHome, renderFreePage, renderJournal, renderTextPage, journalSlugs } from './render.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(root, 'dist');
@@ -21,7 +21,7 @@ if (args.has('--fixture')) {
 } else {
   const client = createClient(process.env.NOTION_TOKEN);
   model = await loadFromNotion(client, config.notion);
-  console.log(`Контент из Notion: ${model.projects.length} проектов, ${model.experience.length} строк опыта.`);
+  console.log(`Контент из Notion: ${model.projects.length} проектов, ${model.experience.length} строк опыта, ${model.journal?.texts.length ?? 0} текстов.`);
   if (args.has('--save-fixture')) {
     await writeFile(path.join(root, 'fixtures/content.json'), JSON.stringify(model, null, 1));
   }
@@ -42,6 +42,16 @@ await writeFile(path.join(outDir, 'index.html'), mark(renderHome(model, { siteUr
 if (model.about) {
   await mkdir(path.join(outDir, 'about'), { recursive: true });
   await writeFile(path.join(outDir, 'about', 'index.html'), mark(renderFreePage(model, model.about, { siteUrl: config.siteUrl }), live));
+}
+if (model.journal) {
+  const dir = path.join(outDir, 'journal');
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, 'index.html'), mark(renderJournal(model, { siteUrl: config.siteUrl }), live));
+  for (const [text, slug] of journalSlugs(model.journal)) {
+    if (!text.content.length) continue;
+    await mkdir(path.join(dir, slug), { recursive: true });
+    await writeFile(path.join(dir, slug, 'index.html'), mark(renderTextPage(model, text, { siteUrl: config.siteUrl }), live));
+  }
 }
 if (config.domain) await writeFile(path.join(outDir, 'CNAME'), config.domain + '\n');
 await writeFile(path.join(outDir, '.nojekyll'), '');
