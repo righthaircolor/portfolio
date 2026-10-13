@@ -12,6 +12,7 @@
   --gap:24px;
   /* Spacing system: list items 8, paragraphs and label→content 16, groups 24, top of content 32, blocks 48 */
   --s-list:8px;
+  --s-rule:8px;   /* from a rule to the label under it */
   --s-para:16px;
   --s-group:24px;
   --s-top:32px;
@@ -53,7 +54,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:1px solid var
 .contacts{margin:var(--s-group) 0;overflow-wrap:anywhere}
 .contacts p+p{margin-top:var(--s-para)}
 .side-links{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-list);font-family:var(--font)}
-.experience{margin-top:var(--s-block);border-top:.5px solid var(--line);padding-top:8px}
+.experience{margin-top:var(--s-block);border-top:.5px solid var(--line);padding-top:var(--s-rule)}
 .experience h2{font-size:16px;margin-bottom:var(--s-para)}
 .experience ul{list-style:none;padding:0;max-width:420px;display:grid;gap:var(--s-list)}
 .experience li{display:grid;grid-template-columns:6.4em 1fr;gap:12px}
@@ -65,7 +66,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:1px solid var
 
 .projects table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:inherit}
 .projects col.c-title{width:38%}.projects col.c-collab{width:25%}.projects col.c-location{width:21%}.projects col.c-year{width:16%}
-.projects th{text-align:left;font-weight:400;border-top:.5px solid var(--line);padding:8px 12px var(--s-para) 0}
+.projects th{text-align:left;font-weight:400;border-top:.5px solid var(--line);padding:var(--s-rule) 12px var(--s-para) 0}
 .projects td{vertical-align:top;padding:0 12px var(--s-list) 0;overflow-wrap:anywhere}
 .projects .marker{white-space:nowrap}
 .projects .desc{color:#333}
@@ -130,6 +131,7 @@ html:not(.js) .case-panel:target{display:block}
 .free-section figure img{width:100%;height:auto}
 .free-section figcaption{font-size:14px;color:var(--muted);margin-top:8px}
 hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
+.free-section.has-rule{border-top:.5px solid var(--line);padding-top:var(--s-rule)}
 
 /* The portrait grows from the home sidebar into the column (browsers with cross-page view transitions). */
 @view-transition{navigation:auto}
