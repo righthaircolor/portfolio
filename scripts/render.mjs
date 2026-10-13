@@ -254,9 +254,9 @@ ${projects.map((p) => casePanel(p, fieldText(h.ownTitle) || 'Своё')).join('\
 // Notion columns = left column → narrow column, the rest → main column (3+ columns split the main
 // column into equal columns; leave the first Notion column empty to skip the narrow one); a divider draws a line;
 // anything else goes into the main column.
-export function layoutFreePage(blocks = []) {
+export function layoutFreePage(blocks = [], { statement: withStatement = true } = {}) {
   const items = [...blocks];
-  const statement = items[0]?.type === 'p' ? [items.shift()] : [];
+  const statement = withStatement && items[0]?.type === 'p' ? [items.shift()] : [];
   const out = [];
   let section = null, row = null, rule = false;
   // A divider becomes the top rule of the next section, exactly like the table rules on the home page.
@@ -298,28 +298,137 @@ function freeSectionHtml(section) {
   return `<section class="free-section${section.rule ? ' has-rule' : ''}">${lead}${rows.map((r) => `<div class="row"><div class="aside">${r.asideHtml}</div><div class="main">${blocksHtml(r.main)}</div></div>`).join('')}</section>`;
 }
 
+// Shared frame of the inner pages: name | bar with the title and ×, a narrow left column, the text.
+function freeShell({ model, title, barTitle = title, closeHref, aside, body, bodyClass = '' }) {
+  const name = fieldText(model.home.name) || 'Ксения Анискович';
+  return `${head({ title: `${title} — ${name}`, description: fieldText(model.home.description) })}
+<body class="free-page${bodyClass ? ' ' + bodyClass : ''}">
+<header class="page-head">
+ <a class="site-name" href="${pageBase}">${esc(name)}</a>
+ <div class="bar"><span>${esc(barTitle)}</span><a class="page-close" href="${closeHref}" aria-label="Закрыть">×</a></div>
+</header>
+<main class="free">
+ ${aside}
+ <div class="free-text">
+  ${body}
+ </div>
+</main>
+<script src="${pageBase}site.js" defer></script>
+</body>
+</html>
+`;
+}
+
+const statementHtml = (statement) =>
+  statement.length ? `<section class="statement">${statement.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</section>` : '';
+
 export function renderFreePage(model, page, { siteUrl = '' } = {}) {
   setPage(siteUrl, '../');
   const h = model.home;
   const name = fieldText(h.name) || 'Ксения Анискович';
   const photo = (h.photo || []).find((b) => b.type === 'image' && b.src);
   const { statement, sections } = layoutFreePage(page.content);
-  const title = page.title || 'Обо мне';
-  return `${head({ title: `${title} — ${name}`, description: fieldText(h.description) })}
-<body class="free-page">
-<header class="page-head">
+  return freeShell({
+    model,
+    title: page.title || 'Обо мне',
+    closeHref: '../',
+    aside: `<aside class="free-photo">${photo ? `<img class="portrait" src="${esc(asset(photo.src))}" alt="${esc(name)}">` : ''}</aside>`,
+    body: `${statementHtml(statement)}
+  ${sections.map(freeSectionHtml).join('\n  ')}`,
+  });
+}
+
+// «Кейсы и наблюдения»: the left column is the index (phrase, rubrics, list of materials),
+// the right column is a feed of preview cards in the same order. Rubrics filter both.
+export function journalSlugs(journal) {
+  const used = new Set();
+  return new Map(journal.texts.map((t) => [t, slugify(t.title, used)]));
+}
+
+// A material gets its own page on the site when it has no «Ссылка» and there is text inside its Notion page.
+export const livesOnSite = (t) => !safeHref(t.link) && t.content.some((b) => b.type !== 'image');
+// The preview is the first picture inside the material's Notion page.
+const previewOf = (t) => t.content.find((b) => b.type === 'image' && b.src);
+
+export function renderJournal(model, { siteUrl = '' } = {}) {
+  setPage(siteUrl, '../');
+  const j = model.journal;
+  const name = fieldText(model.home.name) || 'Ксения Анискович';
+  const title = j.title || 'Кейсы и наблюдения';
+  const slugs = journalSlugs(j);
+  const rubricSlugs = new Set(['vse']);
+  const counts = new Map();
+  for (const t of j.texts) if (t.rubric) counts.set(t.rubric, (counts.get(t.rubric) || 0) + 1);
+  // Every option of «Рубрика» in Notion order (empty ones too), then any value missing from the options.
+  const rubrics = [...new Set([...(j.rubrics || []), ...counts.keys()])]
+    .map((r) => ({ name: r, slug: slugify(r, rubricSlugs), count: counts.get(r) || 0 }));
+  const slugOf = new Map(rubrics.map((r) => [r.name, r.slug]));
+
+  const items = j.texts.map((t) => {
+    const own = livesOnSite(t);
+    const href = own ? `${slugs.get(t)}/` : safeHref(t.link);
+    const attrs = href ? (own ? `href="${esc(href)}"` : linkAttrs(href)) : '';
+    const source = [t.where, t.year].filter(Boolean).join(', ');
+    const readLabel = own ? 'Читать →' : t.where ? `Читать в «${t.where}» ↗` : 'Читать ↗';
+    const img = previewOf(t);
+    const r = t.rubric ? ` data-rubric="${slugOf.get(t.rubric)}"` : '';
+    const id = `t-${slugs.get(t)}`;
+    const linked = (inner) => (href ? `<a ${attrs}>${inner}</a>` : inner);
+    return {
+      li: `<li${r}><a href="#${id}" data-card="${id}">${esc(t.title)}${source ? `<span class="src">${esc(source)}${href && !own ? ' ↗' : ''}</span>` : ''}</a></li>`,
+      card: `<article class="card" id="${id}"${r}>
+    <div class="card-row"><h2>${linked(esc(t.title))}${source ? `<span class="src">${esc(source)}</span>` : ''}</h2>
+    <div class="card-main">${img ? `<figure>${linked(`<img src="${esc(asset(img.src))}" alt="" loading="lazy">`)}</figure>` : ''}${plain(t.summary).trim() ? `<p class="sum">${inline(t.summary)}</p>` : ''}${href ? `<a class="go" ${attrs}>${esc(readLabel)}</a>` : ''}</div></div>
+   </article>`,
+    };
+  });
+  const lead = j.content.filter((b) => b.type === 'p');
+  return `${head({ title: `${title} — ${name}`, description: fieldText(model.home.description) })}
+<body class="journal-page">
+<header class="j-head">
  <a class="site-name" href="../">${esc(name)}</a>
  <div class="bar"><span>${esc(title)}</span><a class="page-close" href="../" aria-label="Закрыть">×</a></div>
 </header>
-<main class="free">
- <aside class="free-photo">${photo ? `<img class="portrait" src="${esc(asset(photo.src))}" alt="${esc(name)}">` : ''}</aside>
- <div class="free-text">
-  ${statement.length ? `<section class="statement">${statement.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</section>` : ''}
-  ${sections.map(freeSectionHtml).join('\n  ')}
+<main class="j">
+ <aside class="j-index">
+  ${lead.length ? `<div class="j-lead">${lead.map((b) => `<p>${inline(b.rich)}</p>`).join('')}</div>` : ''}
+  <ul class="j-rubrics" aria-label="Рубрики">
+   <li><a href="./" data-rubric="" aria-current="true">Все <span class="n">${j.texts.length}</span></a></li>
+   ${rubrics.map((r) => `<li><a href="#${r.slug}" data-rubric="${r.slug}">${esc(r.name)} <span class="n">${r.count}</span></a></li>`).join('\n   ')}
+  </ul>
+  <ol class="j-list">
+   ${items.map((i) => i.li).join('\n   ')}
+  </ol>
+ </aside>
+ <div class="j-feed">
+  ${items.map((i) => i.card).join('\n  ')}
+  <p class="j-empty"${j.texts.length ? ' hidden' : ''}>Здесь скоро появятся тексты.</p>
  </div>
 </main>
 <script src="../site.js" defer></script>
 </body>
 </html>
 `;
+}
+
+// A text that lives on the site: /journal/<slug>/. Same layout rules as «Обо мне», without the big first paragraph:
+// the title is the statement, and the left column holds rubric, place, year and the original link.
+export function renderTextPage(model, text, { siteUrl = '' } = {}) {
+  setPage(siteUrl, '../../');
+  const journalTitle = model.journal?.title || 'Кейсы и наблюдения';
+  const { sections } = layoutFreePage(text.content, { statement: false });
+  const href = safeHref(text.link);
+  // The rubric leads back to the list filtered by it (same slug as in the journal menu).
+  const rubric = text.rubric ? `<li class="journal-nav"><a href="../#${slugify(text.rubric, new Set(['vse']))}">${esc(text.rubric)}</a></li>` : '';
+  const facts = rubric + [text.where, text.year].filter(Boolean).map((v) => `<li>${esc(v)}</li>`).join('');
+  return freeShell({
+    model,
+    title: text.title,
+    barTitle: journalTitle,
+    closeHref: '../',
+    bodyClass: 'text-page',
+    aside: `<aside class="free-photo text-facts">${facts ? `<ul>${facts}</ul>` : ''}${href ? `<p><a ${linkAttrs(href)}>Оригинал ↗</a></p>` : ''}</aside>`,
+    body: `<section class="statement"><h1>${esc(text.title)}</h1>${plain(text.summary).trim() ? `<p class="lede">${inline(text.summary)}</p>` : ''}</section>
+  ${sections.map(freeSectionHtml).join('\n  ')}`,
+  });
 }

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient } from './notion.mjs';
 import { loadFromNotion } from './content.mjs';
-import { renderHome } from './render.mjs';
+import { renderHome, renderJournal, renderTextPage } from './render.mjs';
 
 const rt = (text, extra = {}) => [{ type: 'text', plain_text: text, href: extra.href || null, annotations: { bold: !!extra.bold, italic: false, strikethrough: false, underline: false, code: false, color: 'default' } }];
 let n = 0;
@@ -109,6 +109,51 @@ test('loads Notion content into the model and renders it', async () => {
   assert.match(html, /data-more="Недостаточно проектов"/);
   assert.match(html, /<section class="projects" aria-label="Спецпроекты">[\s\S]*<th scope="col">Спецпроекты<\/th>[\s\S]*Бар о пай →/, '«Блок» value → its own table');
   assert.ok(html.indexOf('aria-label="Своё"') < html.indexOf('aria-label="Спецпроекты"'), 'after «Своё»');
+});
+
+test('journal: rubric menu, table from the «Тексты» database inside the page, texts living on the site', async () => {
+  const txt = (id, o) => ({ object: 'page', id, properties: {
+    Название: { type: 'title', title: rt(o.t) }, Рубрика: { type: 'select', select: o.r ? { name: o.r } : null },
+    Где: { type: 'rich_text', rich_text: o.w ? rt(o.w) : [] }, Год: { type: 'rich_text', rich_text: [] },
+    Ссылка: { type: 'url', url: o.l || null }, Кратко: { type: 'rich_text', rich_text: rt('Кратко') },
+  } });
+  const blocks = {
+    J: [{ object: 'block', id: 'jp', type: 'paragraph', has_children: false, paragraph: { rich_text: rt('Тексты и разговоры.') } },
+      { object: 'block', id: 'TEXTS', type: 'child_database', has_children: false, child_database: { title: 'Тексты' } }],
+    t1: [], t2: [], t3: [{ object: 'block', id: 'x', type: 'paragraph', has_children: false, paragraph: { rich_text: rt('Текст на сайте') } }],
+  };
+  const client = createClient('secret', { fetchImpl: async (url, init) => {
+    const u = new URL(url); let m;
+    const json = (d) => new Response(JSON.stringify(d), { status: 200 });
+    if ((m = u.pathname.match(/\/v1\/blocks\/(.+)\/children/))) return json({ results: blocks[m[1]] || [], has_more: false });
+    if (u.pathname === '/v1/pages/J') return json({ properties: { title: { type: 'title', title: rt('Кейсы и наблюдения') } } });
+    if (u.pathname === '/v1/databases/TEXTS') return json({ properties: { Рубрика: { type: 'select', select: { options: [{ name: 'Статьи' }, { name: 'Кейсы' }, { name: 'Диалоги' }, { name: 'Инсайты' }] } } } });
+    if (u.pathname === '/v1/databases/TEXTS/query') return json({ results: [
+      txt('t1', { t: 'Голландские плакаты', r: 'Статьи', w: 'Skillbox Медиа', l: 'https://skillbox.ru/x' }),
+      txt('t2', { t: 'Разговор', r: 'Диалоги', l: 'https://ktostudent.ru/y' }),
+      txt('t3', { t: 'Инсайт', r: 'Инсайты' }),
+    ], has_more: false });
+    if (u.pathname.match(/\/v1\/databases\/.+\/query/)) return json({ results: [], has_more: false });
+    return new Response('{}', { status: 400 });
+  } });
+  const model = await loadFromNotion(client, { home: 'H', projects: 'P', experience: 'E', journal: 'J' });
+  assert.equal(model.journal.texts.length, 3);
+  assert.deepEqual(model.journal.rubrics, ['Статьи', 'Кейсы', 'Диалоги', 'Инсайты']);
+  model.home = { name: [], photo: [] };
+  const html = renderJournal(model);
+  assert.match(html, /<div class="j-lead"><p>Тексты и разговоры\.<\/p><\/div>/);
+  assert.match(html, /aria-current="true">Все <span class="n">3<\/span>/);
+  assert.match(html, /href="#stati" data-rubric="stati">Статьи <span class="n">1<\/span>[\s\S]*Кейсы <span class="n">0<\/span>[\s\S]*Диалоги[\s\S]*Инсайты/, 'all rubrics from Notion, in Notion order');
+  assert.match(html, /<li data-rubric="stati"><a href="#t-gollandskie-plakaty" data-card="t-gollandskie-plakaty">Голландские плакаты<span class="src">Skillbox Медиа ↗<\/span>/, 'index item with the source under the title');
+  assert.match(html, /<article class="card" id="t-gollandskie-plakaty" data-rubric="stati">/);
+  assert.match(html, /<a class="go" href="https:\/\/skillbox.ru\/x" target="_blank" rel="noopener">Читать в «Skillbox Медиа» ↗<\/a>/);
+  assert.match(html, /<a class="go" href="insayt\/">Читать →<\/a>/, 'no link + text inside → own page');
+  assert.match(html, /<p class="j-empty" hidden>/);
+  const page = renderTextPage(model, model.journal.texts[2]);
+  assert.match(page, /<h1>Инсайт<\/h1>/);
+  assert.match(page, /href="\.\.\/#insayty"/);
+  assert.match(page, /href="\.\.\/\.\.\/style\.css"/);
+  assert.doesNotMatch(page, /<section class="statement"><p>Текст на сайте/, 'first paragraph stays regular text');
 });
 
 test('explains a missing connection in Russian', async () => {

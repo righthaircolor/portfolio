@@ -177,6 +177,21 @@ export function parseFreePage(page, blocks) {
   };
 }
 
+// A row of «Тексты» on «Кейсы и наблюдения». An empty page links out to «Ссылка»;
+// text written inside the page becomes its own page on the site, laid out like «Обо мне».
+export function parseText(page, blocks) {
+  return {
+    id: page.id,
+    title: text(prop(page, 'Название')) || 'Без названия',
+    rubric: text(prop(page, 'Рубрика')),
+    where: text(prop(page, 'Где')),
+    year: text(prop(page, 'Год')),
+    link: text(prop(page, 'Ссылка')),
+    summary: prop(page, 'Кратко') || [],
+    content: blocks.flatMap((b) => convertBlock(b, { columns: true })).filter(notEmpty),
+  };
+}
+
 const visibleFilter = { property: 'Показывать', checkbox: { equals: true } };
 const orderSort = [{ property: 'Порядок', direction: 'ascending' }];
 
@@ -198,5 +213,22 @@ export async function loadFromNotion(client, ids) {
     const [page, blocks] = await Promise.all([client.call(`/pages/${ids.about}`), client.blockTree(ids.about)]);
     model.about = parseFreePage(page, blocks);
   }
+  if (ids.journal) model.journal = await loadJournal(client, ids);
   return model;
+}
+
+// «Кейсы и наблюдения»: the page text goes above the table, the rows come from the «Тексты» database
+// inside the page. Rubrics follow the order of the options in Notion (drag them to reorder the menu).
+async function loadJournal(client, ids) {
+  const [page, blocks] = await Promise.all([client.call(`/pages/${ids.journal}`), client.blockTree(ids.journal)]);
+  const dbId = ids.texts || blocks.find((b) => b.type === 'child_database')?.id;
+  const journal = { ...parseFreePage(page, blocks), rubrics: [], texts: [] };
+  if (!dbId) {
+    console.warn('На странице «Кейсы и наблюдения» нет базы «Тексты» — таблица будет пустой.');
+    return journal;
+  }
+  const [db, pages] = await Promise.all([client.call(`/databases/${dbId}`), client.query(dbId, { filter: visibleFilter, sorts: orderSort })]);
+  journal.rubrics = (db.properties?.['Рубрика']?.select?.options || []).map((o) => o.name);
+  for (const p of pages) journal.texts.push(parseText(p, await client.blockTree(p.id)));
+  return journal;
 }

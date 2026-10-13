@@ -133,6 +133,43 @@ html:not(.js) .case-panel:target{display:block}
 hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
 .free-section.has-rule{border-top:.5px solid var(--line);padding-top:var(--s-rule)}
 
+/* «Кейсы и наблюдения»: index on the left (phrase, rubrics, list), feed of preview cards on the right */
+.j-head{display:grid;grid-template-columns:var(--left) minmax(0,1fr);column-gap:var(--gap);align-items:end;padding:8px 0 24px;border-bottom:.5px solid var(--line)}
+.j-head .site-name{justify-self:start}
+.j-head .bar{display:flex;justify-content:space-between;gap:24px}
+.j{display:grid;grid-template-columns:var(--left) minmax(0,1fr);column-gap:var(--gap);align-items:start}
+.j-index{position:sticky;top:0;max-height:100vh;overflow:auto;padding:var(--s-top) var(--gap) var(--s-top) 0;scrollbar-width:none}
+.j-index::-webkit-scrollbar{display:none}
+.j-lead{max-width:420px}
+.j-lead p{font-size:24px;line-height:1.18}
+.j-lead p+p{margin-top:var(--s-para)}
+.j-rubrics{list-style:none;padding:0;margin-top:var(--s-group);display:flex;flex-wrap:wrap;gap:var(--s-list) var(--s-group)}
+.j-rubrics a,.journal-nav a{text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
+.j-rubrics a:hover,.j-rubrics a[aria-current],.journal-nav a:hover{color:var(--ink)}
+.j-rubrics .n{font-size:11px;letter-spacing:0;position:relative;top:-.55em;margin-left:1px}
+.j-list{list-style:none;padding:var(--s-rule) 0 0;margin-top:var(--s-group);border-top:.5px solid var(--line);display:grid;gap:var(--s-para);max-width:420px}
+.j-list a{display:block;color:var(--muted);transition:color .2s}
+.j-list a:hover,.j-list a.is-current{color:var(--ink)}
+.j-list .src{display:block;font-size:13px;margin-top:2px}
+.j-feed{padding-top:var(--s-top);min-width:0;display:flex;flex-direction:column;gap:var(--s-block)}
+.card{border-top:.5px solid var(--line);padding-top:var(--s-rule);scroll-margin-top:var(--s-top)}
+.card-row{display:grid;grid-template-columns:38% 62%}
+.card h2{font-size:16px;font-weight:400;padding-right:24px}
+.card h2 .src{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.card figure{margin:0 0 var(--s-para)}
+.card img{display:block;max-width:100%;max-height:440px;width:auto;height:auto}
+.card .sum{max-width:620px}
+.card .go{display:inline-block;margin-top:var(--s-para)}
+.card .go:hover,.card h2 a:hover{text-decoration:underline;text-decoration-thickness:.5px;text-underline-offset:4px}
+.card[hidden],.j-list li[hidden],.j-empty[hidden]{display:none}
+.j-empty{color:var(--muted)}
+/* A text that lives on the site: the title is the statement, facts sit in the left column */
+.statement h1{font-size:clamp(22px,2.05vw,34px);line-height:1.18;font-weight:400;max-width:1000px}
+.statement p.lede{font-size:16px;line-height:inherit;margin-top:var(--s-para);max-width:620px}
+.text-facts{padding-top:var(--s-top)}
+.text-facts ul{list-style:none;padding:0;display:grid;gap:var(--s-list);color:var(--muted)}
+.text-facts ul+p{margin-top:var(--s-group)}
+
 /* The portrait grows from the home sidebar into the column (browsers with cross-page view transitions). */
 @view-transition{navigation:auto}
 .portrait{view-transition-name:portrait}
@@ -180,6 +217,17 @@ hr.divider{border:0;border-top:.5px solid var(--line);margin:0;width:100%}
   .free-section .label-row .aside{padding:0}
   .free-section .aside:empty{display:none}
   .split{grid-auto-flow:row;row-gap:var(--s-para)}
+  /* Journal: phrase, rubrics as one line, then the cards (the list would repeat them) */
+  .j-head{display:flex;justify-content:space-between}
+  .j-head .bar span{display:none}
+  .j{display:block}
+  .j-index{position:static;max-height:none;overflow:visible;padding:28px 0 0}
+  .j-lead p{font-size:22px}
+  .j-list{display:none}
+  .j-feed{padding-top:28px;gap:40px}
+  .card-row{grid-template-columns:1fr;row-gap:var(--s-list)}
+  .card h2{padding:0}
+  .text-facts{padding-top:0}
   .grid{display:flex;flex-direction:column;gap:40px}
   .left{padding-right:0;width:100%}
   .right{gap:40px}
