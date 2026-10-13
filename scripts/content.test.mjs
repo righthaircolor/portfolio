@@ -144,8 +144,8 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
   assert.match(html, /<div class="j-lead"><p>Тексты и разговоры\.<\/p><\/div>/);
   assert.match(html, /aria-current="true">Все <span class="n">3<\/span>/);
   assert.match(html, /href="#stati" data-rubric="stati">Статьи <span class="n">1<\/span>[\s\S]*Кейсы <span class="n">0<\/span>[\s\S]*Диалоги[\s\S]*Инсайты/, 'all rubrics from Notion, in Notion order');
-  assert.match(html, /<li data-rubric="stati"><a href="#t-gollandskie-plakaty" data-card="t-gollandskie-plakaty">Голландские плакаты<span class="src">Skillbox Медиа →<\/span>/, 'index item with the source under the title');
-  assert.match(html, /<article class="card" id="t-gollandskie-plakaty" data-rubric="stati">/);
+  assert.match(html, /<li data-rubric="stati"><a href="#t-gollandskie-plakaty" data-card="t-gollandskie-plakaty"><span class="t">Голландские плакаты<\/span><span class="src">Skillbox Медиа<\/span>/, 'index item with the source under the title');
+  assert.match(html, /<article class="card is-first" id="t-gollandskie-plakaty" data-rubric="stati">/);
   assert.match(html, /<a class="go" href="https:\/\/skillbox.ru\/x" target="_blank" rel="noopener">Читать в «Skillbox Медиа» →<\/a>/);
   assert.match(html, /<a class="go" href="insayt\/">Читать →<\/a>/, 'no link + text inside → own page');
   assert.match(html, /<p class="j-empty" hidden>/);
@@ -153,7 +153,7 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
   assert.match(page, /<h1>Инсайт<\/h1>/);
   assert.match(page, /<a href="\.\.\/#insayty" aria-current="true">Инсайты/, 'rubrics lead back to the list, own rubric marked');
   assert.match(page, /class="page-close" href="\.\.\/#t-insayt" data-back/, '× returns to the card');
-  assert.match(page, /<header class="j-head is-split">/);
+  assert.match(page, /<a class="bar-title" href="\.\.\/">/, 'header title leads to the list');
   assert.doesNotMatch(page, /class="lede"|<p>Кратко/, 'summary is not repeated inside the text');
   assert.match(page, /href="\.\.\/\.\.\/style\.css"/);
   assert.doesNotMatch(page, /<section class="statement"><p>Текст на сайте/, 'first paragraph stays regular text');

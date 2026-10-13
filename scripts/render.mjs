@@ -126,7 +126,7 @@ function casePanel(p, ownTitle) {
    ${metaLine ? `<p class="case-meta">${metaLine}</p>` : ''}
    ${plain(p.summary).trim() ? `<p class="case-summary">${inline(p.summary)}</p>` : ''}
    <div class="case-body">${blocksHtml(p.content, { alt: p.title })}</div>
-   ${href ? `<a class="case-source" ${linkAttrs(href)}>Открыть оригинал ↗</a>` : ''}
+   ${href ? `<a class="case-source" ${linkAttrs(href)}>Открыть оригинал →</a>` : ''}
   </article>
  </dialog>`;
 }
@@ -371,7 +371,7 @@ export function renderJournal(model, { siteUrl = '' } = {}) {
   const rubrics = journalRubrics(j);
   const slugOf = new Map(rubrics.map((r) => [r.name, r.slug]));
 
-  const items = j.texts.map((t) => {
+  const items = j.texts.map((t, i) => {
     const own = livesOnSite(t);
     const href = own ? `${slugs.get(t)}/` : safeHref(t.link);
     const attrs = href ? (own ? `href="${esc(href)}"` : linkAttrs(href)) : '';
@@ -382,8 +382,8 @@ export function renderJournal(model, { siteUrl = '' } = {}) {
     const id = `t-${slugs.get(t)}`;
     const linked = (inner) => (href ? `<a ${attrs}>${inner}</a>` : inner);
     return {
-      li: `<li${r}><a href="#${id}" data-card="${id}">${esc(t.title)}${source ? `<span class="src">${esc(source)}${href && !own ? ' →' : ''}</span>` : ''}</a></li>`,
-      card: `<article class="card" id="${id}"${r}>
+      li: `<li${r}><a href="#${id}" data-card="${id}"><span class="t">${esc(t.title)}</span>${source ? `<span class="src">${esc(source)}</span>` : ''}</a></li>`,
+      card: `<article class="card${i === 0 ? ' is-first' : ''}" id="${id}"${r}>
     <div class="card-row"><h2>${linked(esc(t.title))}${source ? `<span class="src">${esc(source)}</span>` : ''}</h2>
     <div class="card-main">${img ? `<figure>${linked(`<img src="${esc(asset(img.src))}" alt="" loading="lazy">`)}</figure>` : ''}${plain(t.summary).trim() ? `<p class="sum">${inline(t.summary)}</p>` : ''}${href ? `<a class="go" ${attrs}>${esc(readLabel)}</a>` : ''}</div></div>
    </article>`,
@@ -431,9 +431,9 @@ export function renderTextPage(model, text, { siteUrl = '' } = {}) {
   const rubrics = journalRubrics(j);
   return `${head({ title: `${text.title} — ${name}`, description: plain(text.summary).trim() || fieldText(model.home.description) })}
 <body class="journal-page text-page">
-<header class="j-head is-split">
+<header class="j-head">
  <a class="site-name" href="../../">${esc(name)}</a>
- <div class="bar"><span>${esc(journalTitle)}</span><a class="page-close" href="../${slug ? `#t-${slug}` : ''}" data-back aria-label="Закрыть">×</a></div>
+ <div class="bar"><a class="bar-title" href="../">${esc(journalTitle)}</a><a class="page-close" href="../${slug ? `#t-${slug}` : ''}" data-back aria-label="Закрыть">×</a></div>
 </header>
 <main class="j">
  <aside class="j-index">

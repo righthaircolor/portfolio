@@ -113,6 +113,8 @@ if (location.hash.length > 1) {
     rubricLinks.forEach((a) => (a.dataset.rubric === current ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
     items.forEach((el) => { el.hidden = !!current && el.dataset.rubric !== current; });
     if (empty) empty.hidden = cards.some((c) => !c.hidden);
+    cards.forEach((c) => c.classList.remove('is-first'));
+    cards.find((c) => !c.hidden)?.classList.add('is-first');
     spy();
   };
   rubricLinks.forEach((a) => a.addEventListener('click', (e) => {
