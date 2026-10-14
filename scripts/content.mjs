@@ -168,6 +168,7 @@ export function parseProject(page, blocks) {
     block: text(prop(page, 'Блок')) || 'Проекты',
     // «Картинка при наведении»: shown next to the cursor while hovering the row (first file only).
     hover: (prop(page, 'Картинка при наведении') || [])[0] || '',
+    created: page.created_time || '',
     content: blocks.flatMap(convertBlock).filter((b) => !(b.type === 'p' && !plain(b.rich).trim())),
   };
 }
@@ -220,6 +221,49 @@ function mentionedPages(blocks = []) {
   return ids;
 }
 
+// «Порядок проектов на главной»: headings are the sections (tables on the home page), the @-mentions under each
+// heading are the projects in order. A project's section on that page wins over its «Блок».
+// Projects missing from the page go first in the section named by their «Блок», newest first.
+export function readProjectsOrder(blocks = []) {
+  const entries = [];
+  let section = null;
+  const walk = (list) => {
+    for (const b of list) {
+      if (/^heading_/.test(b.type)) section = (b[b.type]?.rich_text || []).map((r) => r.plain_text || '').join('').trim();
+      else for (const r of b[b.type]?.rich_text || []) if (r.type === 'mention' && r.mention?.type === 'page') entries.push({ id: r.mention.page.id, section });
+      if (b.children) walk(b.children);
+    }
+  };
+  walk(blocks);
+  return entries;
+}
+
+export function arrangeProjects(projects, entries) {
+  const norm = (id) => String(id || '').replace(/-/g, '');
+  const canon = (name) => (name || '').replace(/ё/g, 'е').toLowerCase().trim();
+  const known = new Map(projects.map((p) => [canon(p.block), p.block]));
+  const listed = new Map();
+  entries.forEach((e, i) => { if (!listed.has(norm(e.id))) listed.set(norm(e.id), { i, section: e.section }); });
+  // Section order: Проекты, Своё, then the other headings as they go on the page, then any other «Блок» values.
+  const sections = ['Проекты', 'Своё'];
+  for (const e of entries) if (e.section && !sections.some((s) => canon(s) === canon(e.section))) sections.push(known.get(canon(e.section)) || e.section);
+  for (const p of projects) if (!sections.some((s) => canon(s) === canon(p.block))) sections.push(p.block);
+  const sectionOf = (p) => {
+    const l = listed.get(norm(p.id));
+    const name = l?.section ? sections.find((s) => canon(s) === canon(l.section)) : null;
+    return name || sections.find((s) => canon(s) === canon(p.block)) || p.block;
+  };
+  const byNew = (a, b) => (b.created || '').localeCompare(a.created || '');
+  const out = [];
+  for (const sec of sections) {
+    const inSec = projects.filter((p) => sectionOf(p) === sec).map((p) => ({ ...p, block: sec }));
+    const missing = inSec.filter((p) => !listed.has(norm(p.id))).sort(byNew);
+    const placed = inSec.filter((p) => listed.has(norm(p.id))).sort((a, b) => listed.get(norm(a.id)).i - listed.get(norm(b.id)).i);
+    out.push(...missing, ...placed);
+  }
+  return out;
+}
+
 const visibleFilter = { property: 'Показывать', checkbox: { equals: true } };
 const orderSort = [{ property: 'Порядок', direction: 'ascending' }];
 
@@ -227,15 +271,16 @@ export async function loadFromNotion(client, ids) {
   const [homeBlocks, experiencePages, projectPages] = await Promise.all([
     client.blockTree(ids.home),
     client.query(ids.experience, { filter: visibleFilter, sorts: orderSort }),
-    client.query(ids.projects, { filter: visibleFilter, sorts: orderSort }),
+    client.query(ids.projects, ids.projectsOrder ? { filter: visibleFilter } : { filter: visibleFilter, sorts: orderSort }),
   ]);
   const { home, unknown } = parseHome(homeBlocks);
   if (unknown.length) console.warn('Незнакомые заголовки на «Главной» (пропущены):', unknown.join(', '));
 
-  const projects = [];
+  let projects = [];
   for (const page of projectPages) {
     projects.push(parseProject(page, await client.blockTree(page.id)));
   }
+  if (ids.projectsOrder) projects = arrangeProjects(projects, readProjectsOrder(await client.blockTree(ids.projectsOrder)));
   const model = { home, experience: parseExperience(experiencePages), projects };
   if (ids.about) {
     const [page, blocks] = await Promise.all([client.call(`/pages/${ids.about}`), client.blockTree(ids.about)]);
