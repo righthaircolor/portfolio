@@ -228,3 +228,13 @@ test('journal order: materials missing from the list go on top (newest first), t
   const out = sortTexts([t('a', '2026-01-01'), t('b', '2026-01-01'), t('new-old', '2026-02-01'), t('c', '2026-01-01'), t('new', '2026-05-01')], ['c', 'a', 'b']);
   assert.deepEqual(out.map((x) => x.title), ['new', 'new-old', 'c', 'a', 'b']);
 });
+
+import { readProjectsOrder, arrangeProjects } from './content.mjs';
+test('projects order page: headings are sections, mentions are the order, missing projects go first by «Блок»', () => {
+  const h = (t) => ({ type: 'heading_2', heading_2: { rich_text: [{ type: 'text', plain_text: t }] } });
+  const m = (id) => ({ type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'mention', plain_text: id, mention: { type: 'page', page: { id } } }] } });
+  const entries = readProjectsOrder([h('Проекты'), m('b'), m('a'), h('Свое'), m('own1'), m('moved'), h('Спецпроекты'), m('s1')]);
+  const p = (id, block, created = '2026-01-01') => ({ id, block, created, title: id });
+  const out = arrangeProjects([p('a', 'Проекты'), p('b', 'Проекты'), p('moved', 'Проекты'), p('new', 'Проекты', '2026-05-01'), p('own1', 'Своё'), p('s1', 'Спецпроекты'), p('s-new', 'Спецпроекты', '2026-06-01')], entries);
+  assert.deepEqual(out.map((x) => `${x.block}:${x.id}`), ['Проекты:new', 'Проекты:b', 'Проекты:a', 'Своё:own1', 'Своё:moved', 'Спецпроекты:s-new', 'Спецпроекты:s1']);
+});
