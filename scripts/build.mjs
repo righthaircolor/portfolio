@@ -53,6 +53,7 @@ if (model.journal) {
     await writeFile(path.join(dir, slug, 'index.html'), mark(renderTextPage(model, text, { siteUrl: config.siteUrl }), live));
   }
 }
+if (model.journal?.apiOrder) await writeFile(path.join(outDir, 'order-debug.txt'), model.journal.apiOrder.map((t, i) => `${i + 1}. ${t}`).join('\n') + '\n');
 if (config.domain) await writeFile(path.join(outDir, 'CNAME'), config.domain + '\n');
 await writeFile(path.join(outDir, '.nojekyll'), '');
 console.log('Готово: dist/index.html');

@@ -263,6 +263,7 @@ async function loadJournal(client, ids) {
   ]);
   journal.rubrics = (db.properties?.['Рубрика']?.select?.options || []).map((o) => o.name);
   for (const p of pages) journal.texts.push(parseText(p, await client.blockTree(p.id)));
+  journal.apiOrder = journal.texts.map((t) => t.title); // ВРЕМЕННО: порядок, который отдаёт Notion API без сортировки
   journal.texts = sortTexts(journal.texts, mentionedPages(orderBlocks));
   return journal;
 }
