@@ -120,10 +120,18 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
     Название: { type: 'title', title: rt(o.t) }, Рубрика: { type: 'select', select: o.r ? { name: o.r } : null },
     Где: { type: 'rich_text', rich_text: o.w ? rt(o.w) : [] }, Год: { type: 'rich_text', rich_text: [] },
     Ссылка: { type: 'url', url: o.l || null }, Кратко: { type: 'rich_text', rich_text: rt('Кратко') },
-  } });
+    Превью: { type: 'files', files: o.img ? [{ type: 'file', name: 'p.png', file: { url: o.img } }] : [] },
+    'Текст ссылки': { type: 'rich_text', rich_text: o.lt ? rt(o.lt) : [] },
+    Порядок: { type: 'number', number: o.n ?? null },
+  }, created_time: o.c || '2026-10-01T00:00:00.000Z' });
   const blocks = {
     J: [{ object: 'block', id: 'jp', type: 'paragraph', has_children: false, paragraph: { rich_text: rt('Тексты и разговоры.') } },
-      { object: 'block', id: 'TEXTS', type: 'child_database', has_children: false, child_database: { title: 'Тексты' } }],
+      { object: 'block', id: 'TEXTS', type: 'child_database', has_children: false, child_database: { title: 'Тексты' } },
+      { object: 'block', id: 'ORDER', type: 'child_page', has_children: true, child_page: { title: 'Порядок на сайте' } }],
+    ORDER: [
+      { object: 'block', id: 'o1', type: 'bulleted_list_item', has_children: false, bulleted_list_item: { rich_text: [{ type: 'mention', plain_text: 'Разговор', mention: { type: 'page', page: { id: 't2' } }, annotations: {} }] } },
+      { object: 'block', id: 'o2', type: 'bulleted_list_item', has_children: false, bulleted_list_item: { rich_text: [{ type: 'mention', plain_text: 'Плакаты', mention: { type: 'page', page: { id: 't1' } }, annotations: {} }] } },
+    ],
     t1: [], t2: [], t3: [{ object: 'block', id: 'x', type: 'paragraph', has_children: false, paragraph: { rich_text: rt('Текст на сайте') } }],
   };
   const client = createClient('secret', { fetchImpl: async (url, init) => {
@@ -133,15 +141,17 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
     if (u.pathname === '/v1/pages/J') return json({ properties: { title: { type: 'title', title: rt('Кейсы и наблюдения') } } });
     if (u.pathname === '/v1/databases/TEXTS') return json({ properties: { Рубрика: { type: 'select', select: { options: [{ name: 'Статьи' }, { name: 'Кейсы' }, { name: 'Диалоги' }, { name: 'Инсайты' }] } } } });
     if (u.pathname === '/v1/databases/TEXTS/query') return json({ results: [
-      txt('t1', { t: 'Голландские плакаты', r: 'Статьи', w: 'Skillbox Медиа', l: 'https://skillbox.ru/x' }),
-      txt('t2', { t: 'Разговор', r: 'Диалоги', l: 'https://ktostudent.ru/y' }),
-      txt('t3', { t: 'Инсайт', r: 'Инсайты' }),
+      txt('t1', { t: 'Голландские плакаты', r: 'Статьи', w: 'Skillbox Медиа', l: 'https://skillbox.ru/x', img: 'https://files.example/p1.png?sig=1', n: 1 }),
+      txt('t2', { t: 'Разговор', r: 'Диалоги', l: 'https://ktostudent.ru/y', lt: 'Слушать', n: 2 }),
+      txt('t3', { t: 'Инсайт', r: 'Инсайты', n: 2, c: '2026-10-05T00:00:00.000Z' }),
     ], has_more: false });
     if (u.pathname.match(/\/v1\/databases\/.+\/query/)) return json({ results: [], has_more: false });
     return new Response('{}', { status: 400 });
   } });
   const model = await loadFromNotion(client, { home: 'H', projects: 'P', experience: 'E', journal: 'J' });
   assert.equal(model.journal.texts.length, 3);
+  assert.deepEqual(model.journal.texts.map((t) => t.title), ['Инсайт', 'Разговор', 'Голландские плакаты'], 'not in «Порядок на сайте» → on top, then the list order');
+  assert.equal(model.journal.texts.find((t) => t.id === 't1').preview, 'https://files.example/p1.png?sig=1');
   assert.deepEqual(model.journal.rubrics, ['Статьи', 'Кейсы', 'Диалоги', 'Инсайты']);
   model.home = { name: [], photo: [] };
   const html = renderJournal(model);
@@ -149,11 +159,13 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
   assert.match(html, /aria-current="true">Все <span class="n">3<\/span>/);
   assert.match(html, /href="#stati" data-rubric="stati">Статьи <span class="n">1<\/span>[\s\S]*Кейсы <span class="n">0<\/span>[\s\S]*Диалоги[\s\S]*Инсайты/, 'all rubrics from Notion, in Notion order');
   assert.match(html, /<li data-rubric="stati"><a href="#t-gollandskie-plakaty" data-card="t-gollandskie-plakaty"><span class="t">Голландские плакаты<\/span><span class="src">Skillbox Медиа<\/span>/, 'index item with the source under the title');
-  assert.match(html, /<article class="card is-first" id="t-gollandskie-plakaty" data-rubric="stati">/);
+  assert.match(html, /<article class="card" id="t-gollandskie-plakaty" data-rubric="stati">/);
   assert.match(html, /<a class="go" href="https:\/\/skillbox.ru\/x" target="_blank" rel="noopener">Читать в «Skillbox Медиа» →<\/a>/);
   assert.match(html, /<a class="go" href="insayt\/">Читать →<\/a>/, 'no link + text inside → own page');
+  assert.match(html, /<img src="https:\/\/files.example\/p1.png\?sig=1"/, 'preview from the «Превью» field');
+  assert.match(html, /<a class="go" href="https:\/\/ktostudent.ru\/y" target="_blank" rel="noopener">Слушать →<\/a>/, 'own link text, arrow added');
   assert.match(html, /<p class="j-empty" hidden>/);
-  const page = renderTextPage(model, model.journal.texts[2]);
+  const page = renderTextPage(model, model.journal.texts.find((t) => t.title === 'Инсайт'));
   assert.match(page, /<h1>Инсайт<\/h1>/);
   assert.match(page, /<a href="\.\.\/#insayty" aria-current="true">Инсайты/, 'rubrics lead back to the list, own rubric marked');
   assert.match(page, /class="page-close" href="\.\.\/#t-insayt" data-back/, '× returns to the card');
@@ -208,4 +220,11 @@ test('free page: three Notion columns split the main column', () => {
   assert.equal(sections[0].rows[0].main[0].type, 'split');
   const html = renderFreePage({ home: { name: [], photo: [] } }, { title: 'Обо мне', content: [P('Привет'), { type: 'h', level: 2, rich: [{ t: 'Как' }] }, { type: 'columns', cols: [[], [P('А')], [P('Б')]] }] });
   assert.match(html, /<div class="aside"><h2 class="label">Как<\/h2><\/div><div class="main"><div class="split"><div><p>А<\/p><\/div><div><p>Б<\/p><\/div><\/div>/);
+});
+
+import { sortTexts } from './content.mjs';
+test('journal order: materials missing from the list go on top (newest first), then the list order', () => {
+  const t = (id, created) => ({ id, title: id, created });
+  const out = sortTexts([t('a', '2026-01-01'), t('b', '2026-01-01'), t('new-old', '2026-02-01'), t('c', '2026-01-01'), t('new', '2026-05-01')], ['c', 'a', 'b']);
+  assert.deepEqual(out.map((x) => x.title), ['new', 'new-old', 'c', 'a', 'b']);
 });

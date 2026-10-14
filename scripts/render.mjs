@@ -351,7 +351,10 @@ export function journalSlugs(journal) {
 // A material gets its own page on the site when it has no «Ссылка» and there is text inside its Notion page.
 export const livesOnSite = (t) => !safeHref(t.link) && t.content.some((b) => b.type !== 'image');
 // The preview is the first picture inside the material's Notion page.
-const previewOf = (t) => t.content.find((b) => b.type === 'image' && b.src);
+// The preview is the «Превью» field in Notion.
+const previewOf = (t) => (t.preview ? { src: t.preview } : null);
+// Button text: «Текст ссылки» from Notion, or «Читать в «Где»» / «Читать»; the arrow → is always added.
+const withArrow = (label) => (/[→↓↑]\s*$/.test(label) ? label : `${label} →`);
 
 // Every option of «Рубрика» in Notion order (empty ones too), then any value missing from the options.
 function journalRubrics(j) {
@@ -379,7 +382,7 @@ export function renderJournal(model, { siteUrl = '' } = {}) {
     const href = own ? `${slugs.get(t)}/` : safeHref(t.link);
     const attrs = href ? (own ? `href="${esc(href)}"` : linkAttrs(href)) : '';
     const source = [t.where, t.year].filter(Boolean).join(', ');
-    const readLabel = own ? 'Читать →' : t.where ? `Читать в «${t.where}» →` : 'Читать →';
+    const readLabel = withArrow(t.linkText || (!own && t.where ? `Читать в «${t.where}»` : 'Читать'));
     const img = previewOf(t);
     const r = t.rubric ? ` data-rubric="${slugOf.get(t.rubric)}"` : '';
     const id = `t-${slugs.get(t)}`;

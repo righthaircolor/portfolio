@@ -192,8 +192,32 @@ export function parseText(page, blocks) {
     year: text(prop(page, 'Год')),
     link: text(prop(page, 'Ссылка')),
     summary: prop(page, 'Кратко') || [],
+    preview: (prop(page, 'Превью') || [])[0] || '',
+    linkText: text(prop(page, 'Текст ссылки')),
+    created: page.created_time || '',
     content: blocks.flatMap((b) => convertBlock(b, { columns: true })).filter(notEmpty),
   };
+}
+
+// Order of materials comes from the page «Порядок на сайте» inside the journal page: a list of @-mentions
+// of the materials, dragged into place in Notion. Materials missing from the list go on top, newest first.
+export function sortTexts(texts, orderIds = []) {
+  const norm = (id) => String(id || '').replace(/-/g, '');
+  const pos = new Map(orderIds.map((id, i) => [norm(id), i]));
+  const byNew = (a, b) => (b.created || '').localeCompare(a.created || '');
+  const missing = texts.filter((t) => !pos.has(norm(t.id))).sort(byNew);
+  const listed = texts.filter((t) => pos.has(norm(t.id))).sort((a, b) => pos.get(norm(a.id)) - pos.get(norm(b.id)));
+  return [...missing, ...listed];
+}
+
+// Page ids mentioned in a block tree, in reading order.
+function mentionedPages(blocks = []) {
+  const ids = [];
+  for (const b of blocks) {
+    for (const r of b[b.type]?.rich_text || []) if (r.type === 'mention' && r.mention?.type === 'page') ids.push(r.mention.page.id);
+    if (b.children) ids.push(...mentionedPages(b.children));
+  }
+  return ids;
 }
 
 const visibleFilter = { property: 'Показывать', checkbox: { equals: true } };
@@ -231,8 +255,14 @@ async function loadJournal(client, ids) {
     console.warn('На странице «Кейсы и наблюдения» нет базы «Тексты» — таблица будет пустой.');
     return journal;
   }
-  const [db, pages] = await Promise.all([client.call(`/databases/${dbId}`), client.query(dbId, { filter: visibleFilter, sorts: orderSort })]);
+  const orderPage = blocks.find((b) => b.type === 'child_page' && /порядок/i.test(b.child_page?.title || ''));
+  const [db, pages, orderBlocks] = await Promise.all([
+    client.call(`/databases/${dbId}`),
+    client.query(dbId, { filter: visibleFilter }),
+    orderPage ? client.blockTree(orderPage.id) : [],
+  ]);
   journal.rubrics = (db.properties?.['Рубрика']?.select?.options || []).map((o) => o.name);
   for (const p of pages) journal.texts.push(parseText(p, await client.blockTree(p.id)));
+  journal.texts = sortTexts(journal.texts, mentionedPages(orderBlocks));
   return journal;
 }

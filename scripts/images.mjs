@@ -89,7 +89,12 @@ export async function localizeImages(model, { outDir, baseDir = process.cwd(), m
   if (model.about) await walk(model.about.content, maxWidth);
   if (model.journal) {
     await walk(model.journal.content, maxWidth);
-    for (const t of model.journal.texts) await walk(t.content, maxWidth);
+    for (const t of model.journal.texts) {
+      await walk(t.content, maxWidth);
+      if (t.preview) {
+        try { t.preview = await save(t.preview, 1200); } catch (e) { console.warn(e.message); t.preview = ''; }
+      }
+    }
   }
   return model;
 }
