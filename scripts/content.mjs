@@ -192,8 +192,21 @@ export function parseText(page, blocks) {
     year: text(prop(page, 'Год')),
     link: text(prop(page, 'Ссылка')),
     summary: prop(page, 'Кратко') || [],
+    preview: (prop(page, 'Превью') || [])[0] || '',
+    linkText: text(prop(page, 'Текст ссылки')),
+    order: prop(page, 'Порядок') ?? null,
+    created: page.created_time || '',
     content: blocks.flatMap((b) => convertBlock(b, { columns: true })).filter(notEmpty),
   };
+}
+
+// Order of materials: an empty «Порядок» puts the material on top (newest first), numbers follow
+// (smaller is higher, decimals like 2.5 slot in between, equal numbers are fine — newer goes first).
+export function sortTexts(texts) {
+  const byNew = (a, b) => (b.created || '').localeCompare(a.created || '');
+  const empty = texts.filter((t) => t.order == null).sort(byNew);
+  const numbered = texts.filter((t) => t.order != null).sort((a, b) => a.order - b.order || byNew(a, b));
+  return [...empty, ...numbered];
 }
 
 const visibleFilter = { property: 'Показывать', checkbox: { equals: true } };
@@ -234,5 +247,6 @@ async function loadJournal(client, ids) {
   const [db, pages] = await Promise.all([client.call(`/databases/${dbId}`), client.query(dbId, { filter: visibleFilter, sorts: orderSort })]);
   journal.rubrics = (db.properties?.['Рубрика']?.select?.options || []).map((o) => o.name);
   for (const p of pages) journal.texts.push(parseText(p, await client.blockTree(p.id)));
+  journal.texts = sortTexts(journal.texts);
   return journal;
 }
