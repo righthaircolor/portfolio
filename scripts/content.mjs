@@ -264,6 +264,31 @@ export function arrangeProjects(projects, entries) {
   return out;
 }
 
+// The order pages in Notion keep up with the tables: a material or project that is not on its order page yet
+// is added there by the build, at the top of its list (journal) or of its section (projects). So a new row
+// appears in the list by itself, and Ksenia only drags it if it should go elsewhere.
+const mentionItem = (id) => ({ type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'mention', mention: { type: 'page', page: { id } } }] } });
+const hasMention = (b) => (b[b.type]?.rich_text || []).some((r) => r.type === 'mention' && r.mention?.type === 'page');
+const blockText = (b) => (b[b.type]?.rich_text || []).map((r) => r.plain_text || '').join('').trim();
+const canonName = (name) => (name || '').replace(/ё/g, 'е').toLowerCase().trim();
+
+async function syncList(client, pageId, blocks, ids) {
+  if (!ids.length) return;
+  const first = blocks.findIndex(hasMention);
+  // Insert above the first item: right after the block before it (the instruction callout).
+  const anchor = first > 0 ? blocks[first - 1].id : first === -1 && blocks.length ? blocks[blocks.length - 1].id : undefined;
+  await client.append(pageId, ids.map(mentionItem), anchor);
+}
+
+export async function syncSections(client, pageId, blocks, missingBySection) {
+  for (const [section, ids] of missingBySection) {
+    if (!ids.length) continue;
+    const heading = blocks.find((b) => /^heading_/.test(b.type) && canonName(blockText(b)) === canonName(section));
+    if (heading) await client.append(pageId, ids.map(mentionItem), heading.id);
+    else await client.append(pageId, [{ type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: section } }] } }, ...ids.map(mentionItem)]);
+  }
+}
+
 const visibleFilter = { property: 'Показывать', checkbox: { equals: true } };
 const orderSort = [{ property: 'Порядок', direction: 'ascending' }];
 
@@ -280,7 +305,26 @@ export async function loadFromNotion(client, ids) {
   for (const page of projectPages) {
     projects.push(parseProject(page, await client.blockTree(page.id)));
   }
-  if (ids.projectsOrder) projects = arrangeProjects(projects, readProjectsOrder(await client.blockTree(ids.projectsOrder)));
+  if (ids.projectsOrder) {
+    const orderBlocks = await client.blockTree(ids.projectsOrder);
+    const entries = readProjectsOrder(orderBlocks);
+    projects = arrangeProjects(projects, entries);
+    const listed = new Set(entries.map((e) => e.id.replace(/-/g, '')));
+    const missingBySection = new Map();
+    for (const p of projects) {
+      if (listed.has(p.id.replace(/-/g, ''))) continue;
+      if (!missingBySection.has(p.block)) missingBySection.set(p.block, []);
+      missingBySection.get(p.block).push(p.id); // arrangeProjects already put them newest first
+    }
+    if (missingBySection.size) {
+      try {
+        await syncSections(client, ids.projectsOrder, orderBlocks, missingBySection);
+        console.log('«Порядок проектов на главной»: добавлены новые проекты:', projects.filter((p) => !listed.has(p.id.replace(/-/g, ''))).map((p) => p.title).join(', '));
+      } catch (e) {
+        console.warn('Не получилось дописать новые проекты на страницу «Порядок проектов на главной»:', e.message);
+      }
+    }
+  }
   const model = { home, experience: parseExperience(experiencePages), projects };
   if (ids.about) {
     const [page, blocks] = await Promise.all([client.call(`/pages/${ids.about}`), client.blockTree(ids.about)]);
@@ -308,6 +352,16 @@ async function loadJournal(client, ids) {
   ]);
   journal.rubrics = (db.properties?.['Рубрика']?.select?.options || []).map((o) => o.name);
   for (const p of pages) journal.texts.push(parseText(p, await client.blockTree(p.id)));
+  const listed = new Set(mentionedPages(orderBlocks).map((id) => id.replace(/-/g, '')));
   journal.texts = sortTexts(journal.texts, mentionedPages(orderBlocks));
+  const missing = journal.texts.filter((t) => !listed.has(t.id.replace(/-/g, ''))); // already newest first
+  if (orderPage && missing.length) {
+    try {
+      await syncList(client, orderPage.id, orderBlocks, missing.map((t) => t.id));
+      console.log(`«Порядок на сайте»: добавлено ${missing.length} — ${missing.map((t) => t.title).join(', ')}`);
+    } catch (e) {
+      console.warn('Не получилось дописать новые материалы на страницу «Порядок на сайте»:', e.message);
+    }
+  }
   return journal;
 }

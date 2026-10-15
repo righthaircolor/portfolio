@@ -75,5 +75,9 @@ export function createClient(token, { fetchImpl = fetch } = {}) {
       })
     );
 
-  return { call, children, blockTree, query };
+  // Adds blocks to a page: after the block `after`, or at the end when it is not given.
+  const append = (id, blocks, after) =>
+    call(`/blocks/${id}/children`, { method: 'PATCH', body: { children: blocks, ...(after ? { after } : {}) } });
+
+  return { call, children, blockTree, query, append };
 }

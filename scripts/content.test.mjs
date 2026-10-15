@@ -134,9 +134,11 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
     ],
     t1: [], t2: [], t3: [{ object: 'block', id: 'x', type: 'paragraph', has_children: false, paragraph: { rich_text: rt('Текст на сайте') } }],
   };
+  const patches = [];
   const client = createClient('secret', { fetchImpl: async (url, init) => {
     const u = new URL(url); let m;
     const json = (d) => new Response(JSON.stringify(d), { status: 200 });
+    if (init?.method === 'PATCH') { patches.push({ path: u.pathname, body: JSON.parse(init.body) }); return json({ results: [] }); }
     if ((m = u.pathname.match(/\/v1\/blocks\/(.+)\/children/))) return json({ results: blocks[m[1]] || [], has_more: false });
     if (u.pathname === '/v1/pages/J') return json({ properties: { title: { type: 'title', title: rt('Кейсы и наблюдения') } } });
     if (u.pathname === '/v1/databases/TEXTS') return json({ properties: { Рубрика: { type: 'select', select: { options: [{ name: 'Статьи' }, { name: 'Кейсы' }, { name: 'Диалоги' }, { name: 'Инсайты' }] } } } });
@@ -151,6 +153,10 @@ test('journal: rubric menu, table from the «Тексты» database inside the 
   const model = await loadFromNotion(client, { home: 'H', projects: 'P', experience: 'E', journal: 'J' });
   assert.equal(model.journal.texts.length, 3);
   assert.deepEqual(model.journal.texts.map((t) => t.title), ['Инсайт', 'Разговор', 'Голландские плакаты'], 'not in «Порядок на сайте» → on top, then the list order');
+  assert.equal(patches.length, 1, 'the missing material is written to the order page');
+  assert.equal(patches[0].path, '/v1/blocks/ORDER/children');
+  assert.equal(patches[0].body.children[0].bulleted_list_item.rich_text[0].mention.page.id, 't3');
+  assert.equal(patches[0].body.after, undefined, 'list starts at the top of the page → no block before it');
   assert.equal(model.journal.texts.find((t) => t.id === 't1').preview, 'https://files.example/p1.png?sig=1');
   assert.deepEqual(model.journal.rubrics, ['Статьи', 'Кейсы', 'Диалоги', 'Инсайты']);
   model.home = { name: [], photo: [] };
@@ -237,4 +243,16 @@ test('projects order page: headings are sections, mentions are the order, missin
   const p = (id, block, created = '2026-01-01') => ({ id, block, created, title: id });
   const out = arrangeProjects([p('a', 'Проекты'), p('b', 'Проекты'), p('moved', 'Проекты'), p('new', 'Проекты', '2026-05-01'), p('own1', 'Своё'), p('s1', 'Спецпроекты'), p('s-new', 'Спецпроекты', '2026-06-01')], entries);
   assert.deepEqual(out.map((x) => `${x.block}:${x.id}`), ['Проекты:new', 'Проекты:b', 'Проекты:a', 'Своё:own1', 'Своё:moved', 'Спецпроекты:s-new', 'Спецпроекты:s1']);
+});
+
+import { syncSections } from './content.mjs';
+test('new projects are written under their section heading; a missing section gets a heading at the end', async () => {
+  const calls = [];
+  const client = { append: async (id, blocks, after) => calls.push({ id, blocks, after }) };
+  const blocks = [{ id: 'c', type: 'callout', callout: { rich_text: [] } }, { id: 'h1', type: 'heading_2', heading_2: { rich_text: [{ plain_text: 'Проекты' }] } }];
+  await syncSections(client, 'PAGE', blocks, new Map([['Проекты', ['n2', 'n1']], ['Спецпроекты', ['s']]]));
+  assert.equal(calls[0].after, 'h1');
+  assert.deepEqual(calls[0].blocks.map((b) => b.bulleted_list_item.rich_text[0].mention.page.id), ['n2', 'n1']);
+  assert.equal(calls[1].after, undefined);
+  assert.equal(calls[1].blocks[0].type, 'heading_2');
 });
